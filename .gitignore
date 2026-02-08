@@ -1,0 +1,6 @@
+output/
+output-compile-fail/
+node_modules/
+.spago/
+.psc-ide-port
+*.lock
