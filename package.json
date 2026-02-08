@@ -26,7 +26,7 @@
   "devDependencies": {
     "jsdom": "^28.0.0",
     "purescript": "^0.15.15",
-    "spago": "^0.93.42",
+    "spago": "0.93.42",
     "vitest": "^2.1.8"
   },
   "dependencies": {}
