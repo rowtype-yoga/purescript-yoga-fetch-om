@@ -3,8 +3,10 @@ module Yoga.Fetch.Om.BuildUrl
   , buildUrl
   , class SubstitutePathParams
   , substitutePathParams
+  , substitutePathParamsImpl
   , class AppendQueryParams
   , appendQueryParams
+  , appendQueryParamsImpl
   , class AppendQueryParamsRL
   , appendQueryParamsRL
   , class SubstitutePathParamsRL
@@ -43,19 +45,22 @@ instance
     withBase = case baseUrl of
       "" -> pattern
       base -> base <> pattern
-    withPathParams = substitutePathParams (Proxy :: _ pathParams) pathParamsRec withBase
-    withQueryParams = appendQueryParams (Proxy :: _ queryParams) queryParamsRec withPathParams
+    withPathParams = substitutePathParamsImpl (Proxy :: _ pathParams) pathParamsRec withBase
+    withQueryParams = appendQueryParamsImpl (Proxy :: _ queryParams) queryParamsRec withPathParams
 
 class SubstitutePathParams :: Row Type -> Constraint
 class SubstitutePathParams params where
-  substitutePathParams :: Proxy params -> Record params -> String -> String
+  substitutePathParamsImpl :: Proxy params -> Record params -> String -> String
+
+substitutePathParams :: forall @params. SubstitutePathParams params => Record params -> String -> String
+substitutePathParams = substitutePathParamsImpl (Proxy :: _ params)
 
 instance
   ( RowToList params rl
   , SubstitutePathParamsRL rl params
   ) =>
   SubstitutePathParams params where
-  substitutePathParams _ = substitutePathParamsRL (Proxy :: _ rl)
+  substitutePathParamsImpl _ = substitutePathParamsRL (Proxy :: _ rl)
 
 class SubstitutePathParamsRL :: RowList Type -> Row Type -> Constraint
 class SubstitutePathParamsRL rl r where
@@ -79,14 +84,17 @@ instance
 
 class AppendQueryParams :: Row Type -> Constraint
 class AppendQueryParams params where
-  appendQueryParams :: Proxy params -> Record params -> String -> String
+  appendQueryParamsImpl :: Proxy params -> Record params -> String -> String
+
+appendQueryParams :: forall @params. AppendQueryParams params => Record params -> String -> String
+appendQueryParams = appendQueryParamsImpl (Proxy :: _ params)
 
 instance
   ( RowToList params rl
   , AppendQueryParamsRL rl params
   ) =>
   AppendQueryParams params where
-  appendQueryParams _ rec url = url <> queryString
+  appendQueryParamsImpl _ rec url = url <> queryString
     where
     pairs = appendQueryParamsRL (Proxy :: _ rl) rec []
     queryString = case pairs of

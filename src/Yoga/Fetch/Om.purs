@@ -1,11 +1,13 @@
 module Yoga.Fetch.Om
-  ( deriveClient
+  ( client
+  , deriveClient
   , class DeriveClient
   , deriveClientImpl
   , class DeriveClientRL
   , deriveClientRL
   , class DeriveClientFn
   , deriveClientFn
+  , class RecordRow
   , module Yoga.HTTP.API.Route
   , module Yoga.HTTP.API.Path
   , module Yoga.Fetch.Om.Simple
@@ -33,6 +35,12 @@ import Yoga.HTTP.API.Path (Path, Root, Lit, Capture, PathCons, Param, QueryParam
 import Yoga.HTTP.API.Route (Route(..), GET, POST, PUT, DELETE, PATCH, Response(..), JSON, FormData, NoBody)
 import Yoga.HTTP.API.Route.Handler (class SegmentPathParams, class SegmentQueryParams)
 import Yoga.Om (Om, fromAff)
+
+-- | Extract row type from Record type
+class RecordRow :: Type -> Row Type -> Constraint
+class RecordRow t r | t -> r
+
+instance RecordRow (Record r) r
 
 class DeriveClientFn :: forall k1. Type -> k1 -> Type -> Row Type -> Row Type -> Row Type -> Type -> Type -> Constraint
 class
@@ -78,14 +86,22 @@ class DeriveClient :: Row Type -> Row Type -> Constraint
 class DeriveClient routesRow clientsRow | routesRow -> clientsRow where
   deriveClientImpl :: String -> Proxy (Record routesRow) -> Record clientsRow
 
--- | Derive API client functions from route definitions
+-- | Derive API client functions from route definitions using VTA
 -- |
--- | Use a Proxy with a wildcard to avoid repetition:
 -- | ```purescript
--- | api = deriveClient "https://api.example.com" (Proxy :: _ UserAPI)
+-- | type UserAPI = { getUser :: Route ... }
+-- | api = client @UserAPI "https://api.example.com"
 -- | ```
-deriveClient :: forall routesRow clientsRow. DeriveClient routesRow clientsRow => String -> Proxy (Record routesRow) -> Record clientsRow
-deriveClient = deriveClientImpl
+client :: forall @routes routesRow clientsRow. RecordRow routes routesRow => DeriveClient routesRow clientsRow => String -> Record clientsRow
+client baseUrl = deriveClientImpl baseUrl (Proxy :: _ { | routesRow })
+
+-- | Deprecated: Use `client` with VTA instead
+-- |
+-- | ```purescript
+-- | api = deriveClient @UserAPI "https://api.example.com"
+-- | ```
+deriveClient :: forall @routesRow clientsRow. DeriveClient routesRow clientsRow => String -> Record clientsRow
+deriveClient baseUrl = deriveClientImpl baseUrl (Proxy :: _ { | routesRow })
 
 instance
   ( RowToList routesRow rl

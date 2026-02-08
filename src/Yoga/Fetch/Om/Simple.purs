@@ -109,138 +109,138 @@ get
   :: forall @a result headers ctx err
    . DecodeResponse a result
   => Homogeneous headers String
-  => Record headers
-  -> String
+  => String
+  -> Record headers
   -> Om ctx (fetchError :: FetchError | err) result
-get headers url = _.body <$> simpleFetch @a GET headers url Nothing
+get url headers = _.body <$> simpleFetch @a GET headers url Nothing
 
 getWithHeaders
   :: forall @a result headers ctx err
    . DecodeResponse a result
   => Homogeneous headers String
-  => Record headers
-  -> String
+  => String
+  -> Record headers
   -> Om ctx (fetchError :: FetchError | err) (FetchResponse result)
-getWithHeaders headers url = simpleFetch @a GET headers url Nothing
+getWithHeaders url headers = simpleFetch @a GET headers url Nothing
 
 delete
   :: forall @a result headers ctx err
    . DecodeResponse a result
   => Homogeneous headers String
-  => Record headers
-  -> String
+  => String
+  -> Record headers
   -> Om ctx (fetchError :: FetchError | err) result
-delete headers url = _.body <$> simpleFetch @a DELETE headers url Nothing
+delete url headers = _.body <$> simpleFetch @a DELETE headers url Nothing
 
 deleteWithHeaders
   :: forall @a result headers ctx err
    . DecodeResponse a result
   => Homogeneous headers String
-  => Record headers
-  -> String
+  => String
+  -> Record headers
   -> Om ctx (fetchError :: FetchError | err) (FetchResponse result)
-deleteWithHeaders headers url = simpleFetch @a DELETE headers url Nothing
+deleteWithHeaders url headers = simpleFetch @a DELETE headers url Nothing
 
 delete_
   :: forall headers ctx err
    . Homogeneous headers String
-  => Record headers
-  -> String
+  => String
+  -> Record headers
   -> Om ctx (fetchError :: FetchError | err) Unit
-delete_ headers url = void $ simpleFetch @PlainTextResponse DELETE headers url Nothing
+delete_ url headers = void $ simpleFetch @PlainTextResponse DELETE headers url Nothing
 
 post
   :: forall @a result headers body ctx err
    . DecodeResponse a result
   => Homogeneous headers String
   => WriteForeign body
-  => Record headers
-  -> String
+  => String
+  -> Record headers
   -> body
   -> Om ctx (fetchError :: FetchError | err) result
-post headers url body = _.body <$> simpleFetch @a POST headers url (Just (writeJSON body))
+post url headers body = _.body <$> simpleFetch @a POST headers url (Just (writeJSON body))
 
 postWithHeaders
   :: forall @a result headers body ctx err
    . DecodeResponse a result
   => Homogeneous headers String
   => WriteForeign body
-  => Record headers
-  -> String
+  => String
+  -> Record headers
   -> body
   -> Om ctx (fetchError :: FetchError | err) (FetchResponse result)
-postWithHeaders headers url body = simpleFetch @a POST headers url (Just (writeJSON body))
+postWithHeaders url headers body = simpleFetch @a POST headers url (Just (writeJSON body))
 
 post_
   :: forall headers body ctx err
    . Homogeneous headers String
   => WriteForeign body
-  => Record headers
-  -> String
+  => String
+  -> Record headers
   -> body
   -> Om ctx (fetchError :: FetchError | err) Unit
-post_ headers url body = void $ simpleFetch @PlainTextResponse POST headers url (Just (writeJSON body))
+post_ url headers body = void $ simpleFetch @PlainTextResponse POST headers url (Just (writeJSON body))
 
 put
   :: forall @a result headers body ctx err
    . DecodeResponse a result
   => Homogeneous headers String
   => WriteForeign body
-  => Record headers
-  -> String
+  => String
+  -> Record headers
   -> body
   -> Om ctx (fetchError :: FetchError | err) result
-put headers url body = _.body <$> simpleFetch @a PUT headers url (Just (writeJSON body))
+put url headers body = _.body <$> simpleFetch @a PUT headers url (Just (writeJSON body))
 
 putWithHeaders
   :: forall @a result headers body ctx err
    . DecodeResponse a result
   => Homogeneous headers String
   => WriteForeign body
-  => Record headers
-  -> String
+  => String
+  -> Record headers
   -> body
   -> Om ctx (fetchError :: FetchError | err) (FetchResponse result)
-putWithHeaders headers url body = simpleFetch @a PUT headers url (Just (writeJSON body))
+putWithHeaders url headers body = simpleFetch @a PUT headers url (Just (writeJSON body))
 
 put_
   :: forall headers body ctx err
    . Homogeneous headers String
   => WriteForeign body
-  => Record headers
-  -> String
+  => String
+  -> Record headers
   -> body
   -> Om ctx (fetchError :: FetchError | err) Unit
-put_ headers url body = void $ simpleFetch @PlainTextResponse PUT headers url (Just (writeJSON body))
+put_ url headers body = void $ simpleFetch @PlainTextResponse PUT headers url (Just (writeJSON body))
 
 patch
   :: forall @a result headers body ctx err
    . DecodeResponse a result
   => Homogeneous headers String
   => WriteForeign body
-  => Record headers
-  -> String
+  => String
+  -> Record headers
   -> body
   -> Om ctx (fetchError :: FetchError | err) result
-patch headers url body = _.body <$> simpleFetch @a PATCH headers url (Just (writeJSON body))
+patch url headers body = _.body <$> simpleFetch @a PATCH headers url (Just (writeJSON body))
 
 patchWithHeaders
   :: forall @a result headers body ctx err
    . DecodeResponse a result
   => Homogeneous headers String
   => WriteForeign body
-  => Record headers
-  -> String
+  => String
+  -> Record headers
   -> body
   -> Om ctx (fetchError :: FetchError | err) (FetchResponse result)
-patchWithHeaders headers url body = simpleFetch @a PATCH headers url (Just (writeJSON body))
+patchWithHeaders url headers body = simpleFetch @a PATCH headers url (Just (writeJSON body))
 
 patch_
   :: forall headers body ctx err
    . Homogeneous headers String
   => WriteForeign body
-  => Record headers
-  -> String
+  => String
+  -> Record headers
   -> body
   -> Om ctx (fetchError :: FetchError | err) Unit
-patch_ headers url body = void $ simpleFetch @PlainTextResponse PATCH headers url (Just (writeJSON body))
+patch_ url headers body = void $ simpleFetch @PlainTextResponse PATCH headers url (Just (writeJSON body))

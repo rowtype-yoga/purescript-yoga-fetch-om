@@ -5,8 +5,7 @@ import Prelude
 import Data.Array (length)
 import Data.Maybe (Maybe(..))
 import Effect.Class.Console (log)
-import Type.Proxy (Proxy(..))
-import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Route, JSON, Path, type (/), type (:), type (:?), deriveClient)
+import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Route, JSON, Path, type (/), type (:), type (:?), client)
 import Yoga.Om (Om, handleErrors)
 
 type User =
@@ -74,7 +73,7 @@ api
      , listUsers :: { limit :: Maybe Int, offset :: Maybe Int } -> Om {} () (Array User)
      , updateUser :: { id :: Int } -> UpdateUserRequest -> Om {} (badRequest :: ErrorMessage, notFound :: ErrorMessage) User
      }
-api = deriveClient "https://api.example.com" (Proxy :: Proxy UserAPI)
+api = client @UserAPI "https://api.example.com"
 
 exampleGetUser :: Om {} (notFound :: ErrorMessage) Unit
 exampleGetUser = do

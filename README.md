@@ -10,57 +10,54 @@ spago install yoga-fetch-om
 
 ## Quick Start
 
-### Example 1: Simple GET Request
+### Example 1: Simple GET and POST Requests
 
 ```purescript
-import Yoga.Fetch.Om (GET, Route, Path, type (/), type (:), deriveClient)
+import Yoga.Fetch.Om.Simple (get, post)
 
-type SimpleAPI =
-  { getUser ::
-      Route GET
-        (Path ("users" / "id" : Int))
-        {}
-        ( ok :: { body :: User } )
-  }
-
-api = deriveClient "https://api.example.com" (Proxy :: _ SimpleAPI)
+type User = { id :: Int, name :: String, email :: String }
 
 main = do
-  user <- api.getUser { id: 42 }
-  log user.name  -- Type-safe! Compiler knows user is a User
+  -- Simple GET request
+  user <- get @User "https://api.example.com/users/42" {}
+  log user.name
+  
+  -- Simple POST request with JSON body
+  newUser <- post @User "https://api.example.com/users" {} { name: "Alice", email: "alice@example.com" }
+  log $ "Created user with ID: " <> show newUser.id
 ```
 
-### Example 2: Complete CRUD API with Error Handling
+### Example 2: Type-Safe API Client with Full CRUD
 
 ```purescript
 type UserAPI =
   { getUser ::
-      Route GET (Path ("users" / "id" : Int)) {}
+      Route GET ("users" / "id" : Int) {}
         ( ok :: { body :: User }
         , notFound :: { body :: ErrorMessage }
         )
   , listUsers ::
-      Route GET (Path "users" :? { limit :: Int, offset :: Int }) {}
+      Route GET ("users" :? { limit :: Int, offset :: Int }) {}
         ( ok :: { body :: Array User } )
   , createUser ::
-      Route POST (Path "users") { body :: JSON CreateUserRequest }
+      Route POST "users" { body :: JSON CreateUserRequest }
         ( created :: { body :: User }
         , badRequest :: { body :: ErrorMessage }
         )
   , updateUser ::
-      Route PUT (Path ("users" / "id" : Int)) { body :: JSON UpdateUserRequest }
+      Route PUT ("users" / "id" : Int) { body :: JSON UpdateUserRequest }
         ( ok :: { body :: User }
         , notFound :: { body :: ErrorMessage }
         , badRequest :: { body :: ErrorMessage }
         )
   , deleteUser ::
-      Route DELETE (Path ("users" / "id" : Int)) {}
+      Route DELETE ("users" / "id" : Int) {}
         ( noContent :: { body :: {} }
         , notFound :: { body :: ErrorMessage }
         )
   }
 
-api = deriveClient "https://api.example.com" (Proxy :: _ UserAPI)
+api = client @UserAPI "https://api.example.com"
 
 -- Create a user
 user <- api.createUser { name: "Alice", email: "alice@example.com" }
@@ -110,7 +107,7 @@ Define your API once, use it everywhere:
 server = buildServer apiRoutes handlers
 
 -- Client (yoga-fetch-om)
-client = deriveClient baseUrl (Proxy :: _ apiRoutes)
+apiClient = client @apiRoutes baseUrl
 ```
 
 Changes to routes automatically update both client and server!
@@ -159,38 +156,35 @@ All automatically based on your route types!
 
 ## API Reference
 
-### `deriveClient`
+### `client`
 
 ```purescript
-deriveClient :: String -> Proxy (Record routes) -> Record clients
+client :: forall @routes. String -> Record clients
 ```
 
-Derives a record of client functions from a record of routes.
+Derives a record of client functions from a record of routes using Visible Type Application.
 
 **Parameters:**
+- `@routes` - Your API route type (provided via VTA syntax)
 - `baseUrl` - Base URL (e.g., `"https://api.example.com"`)
-- `routes` - Proxy of your API route definitions
 
 **Returns:** Record where each route becomes a function returning `Om context errors result`
 
-## Roadmap
+**Example:**
+```purescript
+api = client @UserAPI "https://api.example.com"
+```
 
-### Current (0.1.0)
-- ✅ Core client derivation
+## Features
+
+- ✅ Core client derivation with VTA syntax
 - ✅ All HTTP methods (GET, POST, PUT, PATCH, DELETE)
 - ✅ Path, query, and body parameters
+- ✅ Request/response headers
 - ✅ JSON encoding/decoding
+- ✅ FormData support
 - ✅ Variant response handling
 - ✅ Om monad integration
-
-### Future
-- ⏳ Request/response headers
-- ⏳ Authentication (Bearer tokens, API keys)
-- ⏳ Interceptors
-- ⏳ Retry logic
-- ⏳ Timeout configuration
-- ⏳ FormData/file uploads
-- ⏳ Request cancellation
 
 ## License
 

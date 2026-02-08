@@ -1,11 +1,11 @@
 {
   "name": "purescript-yoga-fetch-om",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Derive type-safe fetch clients from yoga HTTP API definitions",
   "type": "module",
   "scripts": {
     "build": "spago build",
-    "test": "spago test",
+    "test": "spago build && bunx vitest run",
     "clean": "rm -rf output .spago",
     "watch": "spago build --watch",
     "repl": "spago repl",
