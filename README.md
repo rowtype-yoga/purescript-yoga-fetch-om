@@ -2,96 +2,280 @@
 
 Derive type-safe fetch clients from `purescript-yoga-http-api` route definitions.
 
-## Concept
-
-Similar to how `purescript-yoga-fastify-om` derives servers from HTTP API definitions, this library derives **clients** from the same definitions using the Fetch API.
-
 ## Installation
 
 ```bash
 spago install yoga-fetch-om
 ```
 
-## Quick Start
+## Progressive Examples
 
-### 1. Define your API using yoga-http-api
+### Example 1: Simple GET Request
+
+The simplest possible client - just fetch a user by ID:
 
 ```purescript
-import Yoga.Fetch.Om
+import Yoga.Fetch.Om (GET, Route, Path, type (/), type (:), deriveClient)
 
+type SimpleAPI =
+  { getUser ::
+      Route GET
+        (Path ("users" / "id" : Int))
+        {}
+        ( ok :: { body :: User } )
+  }
+
+api = deriveClient "https://api.example.com" (Proxy :: _ SimpleAPI)
+
+main = do
+  user <- api.getUser { id: 42 }
+  log user.name  -- Type-safe! Compiler knows user is a User
+```
+
+**Key concepts:**
+- `Path ("users" / "id" : Int)` defines URL structure with path parameter
+- `{ id: 42 }` becomes `/users/42`
+- Response is automatically parsed to `User`
+
+### Example 2: Handling Multiple Response Types
+
+Real APIs return different responses for success vs errors:
+
+```purescript
 type UserAPI =
   { getUser ::
       Route GET
         (Path ("users" / "id" : Int))
-        (Request {})
+        {}
         ( ok :: { body :: User }
         , notFound :: { body :: ErrorMessage }
         )
-  , createUser ::
+  }
+
+api = deriveClient "https://api.example.com" (Proxy :: _ UserAPI)
+
+main = do
+  user <- api.getUser { id: 42 }
+    # handleErrors
+        { notFound: \err -> do
+            log $ "User not found: " <> err.error
+            pure defaultUser
+        }
+  log user.name
+```
+
+**Key concepts:**
+- Variant response types: `(ok :: ..., notFound :: ...)`
+- `handleErrors` to convert error variants into values
+- Type-safe error handling - can't forget a case!
+
+### Example 3: Query Parameters
+
+Add pagination with query strings:
+
+```purescript
+type UserAPI =
+  { listUsers ::
+      Route GET
+        (Path "users" :? { limit :: Int, offset :: Int })
+        {}
+        ( ok :: { body :: Array User } )
+  }
+
+api = deriveClient "https://api.example.com" (Proxy :: _ UserAPI)
+
+main = do
+  users <- api.listUsers { limit: 10, offset: 20 }
+  -- Calls /users?limit=10&offset=20
+  log $ "Found " <> show (length users) <> " users"
+```
+
+**Key concepts:**
+- `:?` operator adds query parameters
+- `{ limit: 10, offset: 20 }` becomes `?limit=10&offset=20`
+- Optional parameters use `Maybe` types
+
+### Example 4: POST with JSON Body
+
+Creating resources with request bodies:
+
+```purescript
+type UserAPI =
+  { createUser ::
       Route POST
         (Path "users")
-        (Request { body :: JSON CreateUserRequest })
+        { body :: JSON CreateUserRequest }
         ( created :: { body :: User }
         , badRequest :: { body :: ErrorMessage }
         )
   }
-```
 
-### 2. Derive a type-safe client
+api = deriveClient "https://api.example.com" (Proxy :: _ UserAPI)
 
-```purescript
-api = deriveAPI "https://api.example.com" (Proxy :: _ UserAPI)
-```
-
-### 3. Use it!
-
-```purescript
 main = do
-  -- Compiler ensures you pass the right parameters
-  result <- api.getUser { id: 42 }
-
-  -- Pattern match on all possible responses
-  result # Variant.match
-    { ok: \(Response { body: user }) ->
-        log $ "User: " <> user.name
-    , notFound: \_ ->
-        log "User not found"
+  user <- api.createUser
+    { name: "Alice"
+    , email: "alice@example.com"
     }
+    # handleErrors
+        { badRequest: \err -> do
+            log $ "Validation error: " <> err.error
+            throw err
+        }
+  log $ "Created user with ID: " <> show user.id
 ```
+
+**Key concepts:**
+- `{ body :: JSON CreateUserRequest }` defines request body
+- Automatic JSON serialization with `yoga-json`
+- Multiple response variants for different statuses
+
+### Example 5: PUT/PATCH with Path Parameters + Body
+
+Updating resources combines path params and body:
+
+```purescript
+type UserAPI =
+  { updateUser ::
+      Route PUT
+        (Path ("users" / "id" : Int))
+        { body :: JSON UpdateUserRequest }
+        ( ok :: { body :: User }
+        , notFound :: { body :: ErrorMessage }
+        , badRequest :: { body :: ErrorMessage }
+        )
+  }
+
+api = deriveClient "https://api.example.com" (Proxy :: _ UserAPI)
+
+main = do
+  user <- api.updateUser { id: 42 }
+    { name: "Alice Updated"
+    , email: "alice.new@example.com"
+    }
+    # handleErrors
+        { notFound: \_ -> do
+            log "User doesn't exist"
+            throw userNotFound
+        , badRequest: \err -> do
+            log $ "Invalid update: " <> err.error
+            throw validationError
+        }
+  log $ "Updated: " <> user.name
+```
+
+**Key concepts:**
+- Path params (`{ id: 42 }`) and body are separate parameters
+- Multiple error variants can be handled independently
+- Exhaustive pattern matching ensures all cases handled
+
+### Example 6: Complete CRUD API
+
+Putting it all together - a full CRUD API:
+
+```purescript
+type UserAPI =
+  { getUser ::
+      Route GET (Path ("users" / "id" : Int)) {}
+        ( ok :: { body :: User }
+        , notFound :: { body :: ErrorMessage }
+        )
+  , listUsers ::
+      Route GET (Path "users" :? { limit :: Int, offset :: Int }) {}
+        ( ok :: { body :: Array User } )
+  , createUser ::
+      Route POST (Path "users") { body :: JSON CreateUserRequest }
+        ( created :: { body :: User }
+        , badRequest :: { body :: ErrorMessage }
+        )
+  , updateUser ::
+      Route PUT (Path ("users" / "id" : Int)) { body :: JSON UpdateUserRequest }
+        ( ok :: { body :: User }
+        , notFound :: { body :: ErrorMessage }
+        , badRequest :: { body :: ErrorMessage }
+        )
+  , deleteUser ::
+      Route DELETE (Path ("users" / "id" : Int)) {}
+        ( noContent :: { body :: {} }
+        , notFound :: { body :: ErrorMessage }
+        )
+  }
+
+api = deriveClient "https://api.example.com" (Proxy :: _ UserAPI)
+
+-- Use it anywhere in your app!
+userWorkflow = do
+  -- Create
+  user <- api.createUser { name: "Alice", email: "alice@example.com" }
+  
+  -- Read
+  user <- api.getUser { id: user.id }
+  
+  -- Update
+  user <- api.updateUser { id: user.id } { name: "Alice Updated", email: user.email }
+  
+  -- Delete
+  _ <- api.deleteUser { id: user.id }
+  
+  log "Workflow complete!"
+```
+
+**Key concepts:**
+- Single source of truth for your API
+- All CRUD operations type-safe and derived automatically
+- Share route definitions between client and server (with `yoga-fastify-om`)
+
+### Example 7: Integration with Om Monad
+
+Using with `yoga-om` for effects and dependency injection:
+
+```purescript
+type AppContext =
+  { api :: UserAPI
+  , userId :: Int
+  }
+
+type AppErrors =
+  ( userNotFound :: Int
+  , unauthorized :: String
+  )
+
+getUserProfile :: Om AppContext AppErrors User
+getUserProfile = do
+  { api, userId } <- ask
+  api.getUser { id: userId }
+    # handleErrors
+        { notFound: \_ -> throw { userNotFound: userId }
+        }
+
+updateProfile :: UpdateUserRequest -> Om AppContext AppErrors User
+updateProfile updates = do
+  { api, userId } <- ask
+  api.updateUser { id: userId } updates
+    # handleErrors
+        { notFound: \_ -> throw { userNotFound: userId }
+        , badRequest: \err -> throw { unauthorized: err.error }
+        }
+```
+
+**Key concepts:**
+- API client lives in context (dependency injection)
+- Error handling with typed variants
+- Composable with other Om-based effects
+
+## Complete Example
+
+See [`test/Complete.Example.purs`](test/Complete.Example.purs) for a complete working example with all patterns.
 
 ## Features
 
-### ✅ Type-Safe Parameters
+### ✅ Type-Safe Everything
 
-The compiler ensures you provide exactly the right parameters:
-
-```purescript
--- Path parameters
-api.getUser { id: 42 }
-
--- Query parameters
-api.listUsers { limit: 10, offset: 20 }
-
--- Request body
-api.createUser { body: { name: "Alice", email: "alice@example.com" } }
-
--- Mixed parameters
-api.updateUser { id: 42, body: { name: "Alice Updated" } }
-```
-
-### ✅ Exhaustive Response Handling
-
-Variant types ensure you handle all possible responses:
-
-```purescript
-result <- api.createUser { body: newUser }
-
-result # Variant.match
-  { created: \(Response { body }) -> log $ "Created: " <> show body.id
-  , badRequest: \(Response { body }) -> log $ "Error: " <> body.error
-  -- Forgot a case? Compile error!
-  }
-```
+- **Path parameters**: Compiler ensures `/users/:id` gets an `id`
+- **Query parameters**: Type-safe query strings
+- **Request bodies**: Automatic JSON serialization
+- **Response bodies**: Automatic JSON parsing
+- **Error handling**: Exhaustive pattern matching on response variants
 
 ### ✅ Single Source of Truth
 
@@ -102,12 +286,12 @@ Define your API once, use it everywhere:
 server = buildServer apiRoutes handlers
 
 -- Client (yoga-fetch-om)
-client = deriveAPI baseUrl (Proxy :: _ apiRoutes)
+client = deriveClient baseUrl (Proxy :: _ apiRoutes)
 ```
 
 Changes to routes automatically update both client and server!
 
-### ✅ Automatic Everything
+### ✅ Automatic Derivation
 
 No manual client code needed:
 - ✅ URL building with path parameter substitution
@@ -119,26 +303,7 @@ No manual client code needed:
 
 ### ✅ Integration with yoga-om
 
-Works seamlessly with the Om monad:
-
-```purescript
-getUserProfile :: Om AppContext AppErrors User
-getUserProfile = do
-  { api, userId } <- ask
-  result <- liftAff $ api.getUser { id: userId }
-  case result of
-    ok -> pure result.body
-    notFound -> throw { userNotFound: userId }
-```
-
-## Complete Example
-
-See [`test/Complete.Example.purs`](test/Complete.Example.purs) for a full working example with:
-- GET requests with path parameters
-- GET requests with query parameters
-- POST/PUT requests with JSON bodies
-- DELETE requests
-- Complete error handling
+Works seamlessly with the Om monad for effects and dependency injection.
 
 ## How It Works
 
@@ -168,10 +333,10 @@ All of this happens automatically based on your route types!
 
 ## API Reference
 
-### `deriveAPI`
+### `deriveClient`
 
 ```purescript
-deriveAPI :: String -> Proxy (Record routes) -> Record clients
+deriveClient :: String -> Proxy (Record routes) -> Record clients
 ```
 
 Derives a record of client functions from a record of routes.
@@ -180,15 +345,7 @@ Derives a record of client functions from a record of routes.
 - `baseUrl` - The base URL of the API (e.g., `"https://api.example.com"`)
 - `routes` - Proxy of your API route definitions
 
-**Returns:** A record where each route becomes a function taking params and returning `Aff (Variant response)`
-
-### `deriveClientFn`
-
-```purescript
-deriveClientFn :: String -> Proxy (Route method segments request response) -> ClientFn params response
-```
-
-Derives a single client function from a route. Usually you'll use `deriveAPI` instead, but this is useful for individual routes.
+**Returns:** A record where each route becomes a function taking params and returning `Om context errors result`
 
 ## Roadmap
 
@@ -199,6 +356,7 @@ Derives a single client function from a route. Usually you'll use `deriveAPI` in
 - ✅ JSON encoding/decoding
 - ✅ Variant response handling
 - ✅ CORS support
+- ✅ Om monad integration
 
 ### Future
 - ⏳ Request/response headers support
