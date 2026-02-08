@@ -3,4 +3,5 @@ output-compile-fail/
 node_modules/
 .spago/
 .psc-ide-port
-*.lock
+package-lock.json
+bun.lockb
