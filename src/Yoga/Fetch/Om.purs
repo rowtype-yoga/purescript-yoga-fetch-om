@@ -1,10 +1,11 @@
 module Yoga.Fetch.Om
-  ( class DeriveClient
-  , deriveClient
-  , class DeriveClientFn
-  , deriveClientFn
+  ( deriveClient
+  , class DeriveClient
+  , deriveClientImpl
   , class DeriveClientRL
   , deriveClientRL
+  , class DeriveClientFn
+  , deriveClientFn
   , module Yoga.HTTP.API.Route
   , module Yoga.HTTP.API.Path
   , module Yoga.Fetch.Om.Simple
@@ -75,14 +76,23 @@ instance
 
 class DeriveClient :: Row Type -> Row Type -> Constraint
 class DeriveClient routesRow clientsRow | routesRow -> clientsRow where
-  deriveClient :: String -> Proxy (Record routesRow) -> Record clientsRow
+  deriveClientImpl :: String -> Proxy (Record routesRow) -> Record clientsRow
+
+-- | Derive API client functions from route definitions
+-- |
+-- | Use a Proxy with a wildcard to avoid repetition:
+-- | ```purescript
+-- | api = deriveClient "https://api.example.com" (Proxy :: _ UserAPI)
+-- | ```
+deriveClient :: forall routesRow clientsRow. DeriveClient routesRow clientsRow => String -> Proxy (Record routesRow) -> Record clientsRow
+deriveClient = deriveClientImpl
 
 instance
   ( RowToList routesRow rl
   , DeriveClientRL rl () clientsRow
   ) =>
   DeriveClient routesRow clientsRow where
-  deriveClient baseUrl _ = deriveClientRL baseUrl (Proxy :: _ rl) {}
+  deriveClientImpl baseUrl _ = deriveClientRL baseUrl (Proxy :: _ rl) {}
 
 class DeriveClientRL :: RowList Type -> Row Type -> Row Type -> Constraint
 class DeriveClientRL rl acc out | rl acc -> out where
