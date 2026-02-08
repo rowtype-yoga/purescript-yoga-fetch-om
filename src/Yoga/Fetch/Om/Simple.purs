@@ -40,7 +40,7 @@ import JS.Fetch.RequestMode as Mode
 import JS.Fetch.Response as Resp
 import Promise.Aff as Promise
 import Type.Row.Homogeneous (class Homogeneous)
-import Yoga.HTTP.API.Route.Encoding (PlainText)
+-- PlainText removed, using local phantom type
 import Yoga.JSON (class ReadForeign, class WriteForeign, readJSON_, writeJSON)
 import Yoga.Om (Om, fromAff, throw)
 
@@ -52,7 +52,9 @@ class DecodeResponse :: forall k. k -> Type -> Constraint
 class DecodeResponse a result | a -> result where
   decodeResponse :: String -> Maybe result
 
-instance DecodeResponse (PlainText String) String where
+data PlainTextResponse
+
+instance DecodeResponse PlainTextResponse String where
   decodeResponse = Just
 
 else instance ReadForeign a => DecodeResponse a a where
@@ -145,7 +147,7 @@ delete_
   => Record headers
   -> String
   -> Om ctx (fetchError :: FetchError | err) Unit
-delete_ headers url = void $ simpleFetch @(PlainText String) DELETE headers url Nothing
+delete_ headers url = void $ simpleFetch @PlainTextResponse DELETE headers url Nothing
 
 post
   :: forall @a result headers body ctx err
@@ -177,7 +179,7 @@ post_
   -> String
   -> body
   -> Om ctx (fetchError :: FetchError | err) Unit
-post_ headers url body = void $ simpleFetch @(PlainText String) POST headers url (Just (writeJSON body))
+post_ headers url body = void $ simpleFetch @PlainTextResponse POST headers url (Just (writeJSON body))
 
 put
   :: forall @a result headers body ctx err
@@ -209,7 +211,7 @@ put_
   -> String
   -> body
   -> Om ctx (fetchError :: FetchError | err) Unit
-put_ headers url body = void $ simpleFetch @(PlainText String) PUT headers url (Just (writeJSON body))
+put_ headers url body = void $ simpleFetch @PlainTextResponse PUT headers url (Just (writeJSON body))
 
 patch
   :: forall @a result headers body ctx err
@@ -241,4 +243,4 @@ patch_
   -> String
   -> body
   -> Om ctx (fetchError :: FetchError | err) Unit
-patch_ headers url body = void $ simpleFetch @(PlainText String) PATCH headers url (Just (writeJSON body))
+patch_ headers url body = void $ simpleFetch @PlainTextResponse PATCH headers url (Just (writeJSON body))

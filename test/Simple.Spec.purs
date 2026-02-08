@@ -4,7 +4,6 @@ import Prelude
 
 import Effect.Class.Console (log)
 import Yoga.Fetch.Om.Simple (FetchError, FetchResponse, get, getWithHeaders, post, post_, put, put_, patch, patch_, delete, delete_)
-import Yoga.HTTP.API.Route.Encoding (PlainText)
 import Yoga.Om (Om, handleErrors)
 
 type User = { id :: Int, name :: String, email :: String }
@@ -17,7 +16,7 @@ exampleGetWithAuth :: forall ctx err. Om ctx (fetchError :: FetchError | err) Us
 exampleGetWithAuth = get @User { authorization: "Bearer abc123" } "https://api.example.com/users/42"
 
 exampleGetPlainText :: forall ctx err. Om ctx (fetchError :: FetchError | err) String
-exampleGetPlainText = get @(PlainText String) {} "https://api.example.com/health"
+exampleGetPlainText = get @String {} "https://api.example.com/health"
 
 exampleGetWithHeaders :: forall ctx err. Om ctx (fetchError :: FetchError | err) (FetchResponse User)
 exampleGetWithHeaders = do
