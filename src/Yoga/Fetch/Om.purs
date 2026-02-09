@@ -31,7 +31,7 @@ import JS.Fetch.Headers as Headers
 import Type.Row.Homogeneous (class Homogeneous)
 import Yoga.Fetch.Om.BuildUrl (class BuildUrl, buildUrl)
 import Yoga.Fetch.Om.Simple (class DecodeResponse, decodeResponse, FetchError, FetchResponse, get, getWithHeaders, delete, deleteWithHeaders, delete_, post, postWithHeaders, post_, put, putWithHeaders, put_, patch, patchWithHeaders, patch_)
-import Yoga.Fetch.Om.ClientFn (class BuildClientFn, class CheckBodyIsUnit, buildClientFn)
+import Yoga.Fetch.Om.ClientFunction (class BuildClientFn, class CheckBodyIsUnit, buildClientFn)
 import Yoga.Fetch.Om.ExtractParams (class ExtractRequestBody, class ExtractRequestHeaders)
 import Yoga.Fetch.Om.MakeRequest (class MakeRequest, class SerializeBody, makeRequest, serializeBody)
 import Yoga.Fetch.Om.ParseResponse (class ParseResponse, parseResponse)
@@ -110,16 +110,16 @@ class DeriveClient routesRow clientsRow | routesRow -> clientsRow where
 -- | type UserAPI = { getUser :: Route ... }
 -- | api = client @UserAPI "https://api.example.com"
 -- | ```
-client :: forall @routes routesRow clientsRow. RecordRow routes routesRow => DeriveClient routesRow clientsRow => String -> Record clientsRow
-client baseUrl = deriveClientImpl baseUrl (Proxy :: _ { | routesRow })
+client :: forall @routes routesRow clientsRow polyClientsRow. RecordRow routes routesRow => DeriveClient routesRow clientsRow => String -> Record polyClientsRow
+client baseUrl = polymorphic (deriveClientImpl baseUrl (Proxy :: _ { | routesRow }) :: Record clientsRow)
 
 -- | Deprecated: Use `client` with VTA instead
 -- |
 -- | ```purescript
 -- | api = deriveClient @UserAPI "https://api.example.com"
 -- | ```
-deriveClient :: forall @routesRow clientsRow. DeriveClient routesRow clientsRow => String -> Record clientsRow
-deriveClient baseUrl = deriveClientImpl baseUrl (Proxy :: _ { | routesRow })
+deriveClient :: forall @routesRow clientsRow polyClientsRow. DeriveClient routesRow clientsRow => String -> Record polyClientsRow
+deriveClient baseUrl = polymorphic (deriveClientImpl baseUrl (Proxy :: _ { | routesRow }) :: Record clientsRow)
 
 -- | Cast a generated client to a polymorphic type signature
 -- | This allows you to add explicit forall quantification for better documentation

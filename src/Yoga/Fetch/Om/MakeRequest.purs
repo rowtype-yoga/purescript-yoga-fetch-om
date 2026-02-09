@@ -81,7 +81,7 @@ makeRequest proxy url customHeaders maybeBody = do
     , body
     , credentials: Credentials.SameOrigin
     , mode: Mode.Cors
-    , referrer: Referrer.ReferrerNone
+    , referrer: Referrer.ReferrerUrl ""
     , referrerPolicy: ReferrerPolicy.NoReferrer
     , integrity: Integrity ""
     , duplex: Duplex.Half

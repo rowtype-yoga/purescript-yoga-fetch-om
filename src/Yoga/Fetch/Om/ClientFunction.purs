@@ -1,4 +1,4 @@
-module Yoga.Fetch.Om.ClientFn
+module Yoga.Fetch.Om.ClientFunction
   ( class BuildClientFn
   , buildClientFn
   , class CheckBodyIsUnit
@@ -10,7 +10,6 @@ import Data.Unit (Unit, unit)
 import Prim.RowList (RowList)
 import Prim.RowList as RL
 import Type.Proxy (Proxy)
-import Unsafe.Coerce (unsafeCoerce)
 import Yoga.Om (Om)
 
 data IsUnit
@@ -26,7 +25,9 @@ class BuildClientFn
   :: RowList Type -> RowList Type -> Type -> Type -> Row Type -> Row Type -> Row Type -> Type -> Type -> Constraint
 class
   BuildClientFn pathQueryRL headersRL bodyFlag body pathQuery headers errorRow result fn
-  | pathQueryRL headersRL bodyFlag body pathQuery headers errorRow result -> fn where
+  | pathQueryRL -> pathQuery
+  , headersRL -> headers
+  , pathQueryRL headersRL bodyFlag body errorRow result -> fn where
   buildClientFn
     :: Proxy pathQueryRL
     -> Proxy headersRL
@@ -40,12 +41,12 @@ instance
     RL.Nil
     IsUnit
     Unit
-    pq
-    h
+    ()
+    ()
     errorRow
     result
     (Om (Record ()) errorRow result) where
-  buildClientFn _ _ _ f = unsafeCoerce (f (unsafeCoerce {}) (unsafeCoerce {}) unit)
+  buildClientFn _ _ _ f = f {} {} unit
 
 -- No path/query, no headers, with body
 instance
@@ -53,12 +54,12 @@ instance
     RL.Nil
     IsNotUnit
     body
-    pq
-    h
+    ()
+    ()
     errorRow
     result
     (body -> Om (Record ()) errorRow result) where
-  buildClientFn _ _ _ f = unsafeCoerce (\b -> f (unsafeCoerce {}) (unsafeCoerce {}) b)
+  buildClientFn _ _ _ f b = f {} {} b
 
 -- No path/query, with headers, no body
 instance
@@ -66,12 +67,12 @@ instance
     (RL.Cons n t tl)
     IsUnit
     Unit
-    pq
+    ()
     h
     errorRow
     result
     (Record h -> Om (Record ()) errorRow result) where
-  buildClientFn _ _ _ f = unsafeCoerce (\hdrs -> f (unsafeCoerce {}) hdrs unit)
+  buildClientFn _ _ _ f hdrs = f {} hdrs unit
 
 -- No path/query, with headers, with body
 instance
@@ -79,12 +80,12 @@ instance
     (RL.Cons n t tl)
     IsNotUnit
     body
-    pq
+    ()
     h
     errorRow
     result
     (Record h -> body -> Om (Record ()) errorRow result) where
-  buildClientFn _ _ _ f = unsafeCoerce (\hdrs b -> f (unsafeCoerce {}) hdrs b)
+  buildClientFn _ _ _ f hdrs b = f {} hdrs b
 
 -- With path/query, no headers, no body
 instance
@@ -93,11 +94,11 @@ instance
     IsUnit
     Unit
     pq
-    h
+    ()
     errorRow
     result
     (Record pq -> Om (Record ()) errorRow result) where
-  buildClientFn _ _ _ f = unsafeCoerce (\pqr -> f pqr (unsafeCoerce {}) unit)
+  buildClientFn _ _ _ f pqr = f pqr {} unit
 
 -- With path/query, no headers, with body
 instance
@@ -106,11 +107,11 @@ instance
     IsNotUnit
     body
     pq
-    h
+    ()
     errorRow
     result
     (Record pq -> body -> Om (Record ()) errorRow result) where
-  buildClientFn _ _ _ f = unsafeCoerce (\pqr b -> f pqr (unsafeCoerce {}) b)
+  buildClientFn _ _ _ f pqr b = f pqr {} b
 
 -- With path/query, with headers, no body
 instance
@@ -123,7 +124,7 @@ instance
     errorRow
     result
     (Record pq -> Record h -> Om (Record ()) errorRow result) where
-  buildClientFn _ _ _ f = unsafeCoerce (\pqr hdrs -> f pqr hdrs unit)
+  buildClientFn _ _ _ f pqr hdrs = f pqr hdrs unit
 
 -- With path/query, with headers, with body
 instance
@@ -136,4 +137,4 @@ instance
     errorRow
     result
     (Record pq -> Record h -> body -> Om (Record ()) errorRow result) where
-  buildClientFn _ _ _ f = unsafeCoerce f
+  buildClientFn _ _ _ f = f

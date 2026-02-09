@@ -5,7 +5,7 @@ import Prelude
 import Data.Array (length)
 import Data.Maybe (Maybe(..))
 import Effect.Class.Console (log)
-import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Route, JSON, Path, type (/), type (:), type (:?), client, polymorphic)
+import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Route, JSON, Path, type (/), type (:), type (:?), client)
 import Yoga.Om (Om, handleErrors)
 
 type User =
@@ -83,7 +83,7 @@ api
      , listUsers :: { limit :: Maybe Int, offset :: Maybe Int } -> Om ctx err (Array User)
      , updateUser :: { id :: Int } -> UpdateUserRequest -> Om ctx (badRequest :: ErrorMessage, notFound :: ErrorMessage | err) User
      }
-api = polymorphic $ client @UserAPI "https://api.example.com"
+api = client @UserAPI "https://api.example.com"
 
 exampleGetUser :: Om {} (notFound :: ErrorMessage) Unit
 exampleGetUser = do
