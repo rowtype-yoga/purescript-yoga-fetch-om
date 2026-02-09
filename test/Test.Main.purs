@@ -3,6 +3,7 @@ module Test.Main where
 import Prelude
 
 import BuildUrl.Spec as BuildUrl
+import MakeRequest.Spec as MakeRequest
 import SplitParams.Spec as SplitParams
 import Variant.Spec as Variant
 import Effect (Effect)
@@ -14,7 +15,8 @@ spec = do
   _ <- BuildUrl.testAppendQueryParams
   _ <- BuildUrl.testBuildUrl
   _ <- SplitParams.testSplitParams
-  Variant.testOnly
+  _ <- Variant.testOnly
+  MakeRequest.testToHeaders
 
 main :: ViTest
 main = viTest spec

@@ -83,10 +83,15 @@ testAppendQueryParams = describe "appendQueryParams" $ do
         "/users"
     expectToEqual "/users?offset=20" result
 
-  test "handles empty query params" do
+  _ <- test "handles empty query params" do
     let
       result = appendQueryParams @() {} "/users"
     expectToEqual "/users" result
+
+  test "URL-encodes special characters in values" do
+    let
+      result = appendQueryParams @(search :: String) { search: "hello world&more=yes" } "/users"
+    expectToEqual "/users?search=hello%20world%26more%3Dyes" result
 
 --------------------------------------------------------------------------------
 -- BuildUrl Tests

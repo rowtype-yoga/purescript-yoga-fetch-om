@@ -10,7 +10,6 @@ module Yoga.Fetch.Om.ParseResponse
 import Prelude
 
 import Control.Monad.Error.Class (throwError)
-import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol)
 import Data.Variant (Variant)
 import Data.Variant as Variant
@@ -25,7 +24,9 @@ import Prim.RowList as RL
 import Promise.Aff as Promise
 import Type.Proxy (Proxy(..))
 import Yoga.HTTP.API.Route.StatusCode (class StatusCodeMap, statusCodeFor, StatusCode(..))
-import Yoga.JSON (class ReadForeign, readJSON_)
+import Data.Either (Either(..))
+import Yoga.JSON (class ReadForeign, readJSON)
+import Yoga.JSON.Error (withStringErrors)
 import Yoga.Om (Om, fromAff)
 import Yoga.Om.Error (Exception)
 
@@ -67,9 +68,9 @@ else instance
   ParseSuccessRL (RL.Cons label body tailRL) successRow where
   parseSuccessRL _ actualStatus jsonText = do
     let StatusCode expected = statusCodeFor (Proxy :: _ label)
-    if actualStatus == expected then case readJSON_ jsonText of
-      Nothing -> Aff.throwError (Exception.error "JSON parse error")
-      Just parsed -> pure (Variant.inj (Proxy :: _ label) parsed)
+    if actualStatus == expected then case withStringErrors (readJSON jsonText) of
+      Left errs -> Aff.throwError (Exception.error ("Failed to parse response (status " <> show actualStatus <> "):\n" <> errs))
+      Right parsed -> pure (Variant.inj (Proxy :: _ label) parsed)
     else
       parseSuccessRL (Proxy :: _ tailRL) actualStatus jsonText
 
@@ -98,8 +99,8 @@ else instance
   ParseErrorRL (RL.Cons label body tailRL) errorRow where
   parseErrorRL _ errorProxy actualStatus jsonText = do
     let StatusCode expected = statusCodeFor (Proxy :: _ label)
-    if actualStatus == expected then case readJSON_ jsonText of
-      Nothing -> throwError (Variant.inj (Proxy :: _ "exception") (Exception.error "JSON parse error"))
-      Just parsed -> throwError (Variant.inj (Proxy :: _ label) parsed)
+    if actualStatus == expected then case withStringErrors (readJSON jsonText) of
+      Left errs -> throwError (Variant.inj (Proxy :: _ "exception") (Exception.error ("Failed to parse error response (status " <> show actualStatus <> "):\n" <> errs)))
+      Right parsed -> throwError (Variant.inj (Proxy :: _ label) parsed)
     else
       parseErrorRL (Proxy :: _ tailRL) errorProxy actualStatus jsonText

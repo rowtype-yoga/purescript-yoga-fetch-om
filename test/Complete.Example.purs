@@ -64,10 +64,18 @@ type UserAPI =
         ( noContent :: { body :: {} }
         , notFound :: { body :: ErrorMessage }
         )
+  , createUserAuth ::
+      Route POST
+        (Path "users")
+        { headers :: Record (authorization :: String), body :: JSON CreateUserRequest }
+        ( created :: { body :: User }
+        , badRequest :: { body :: ErrorMessage }
+        )
   }
 
 api
   :: { createUser :: CreateUserRequest -> Om {} (badRequest :: ErrorMessage) User
+     , createUserAuth :: { authorization :: String } -> CreateUserRequest -> Om {} (badRequest :: ErrorMessage) User
      , deleteUser :: { id :: Int } -> Om {} (notFound :: ErrorMessage) {}
      , getUser :: { id :: Int } -> Om {} (notFound :: ErrorMessage) User
      , listUsers :: { limit :: Maybe Int, offset :: Maybe Int } -> Om {} () (Array User)
@@ -115,3 +123,11 @@ exampleDeleteUser :: Om {} (notFound :: ErrorMessage) Unit
 exampleDeleteUser = do
   _ <- api.deleteUser { id: 42 }
   log "User deleted successfully"
+
+exampleCreateUserAuth :: Om {} (badRequest :: ErrorMessage) Unit
+exampleCreateUserAuth = do
+  user <- api.createUserAuth { authorization: "Bearer abc123" }
+    { name: "Alice"
+    , email: "alice@example.com"
+    }
+  log $ "Created user with ID: " <> show user.id

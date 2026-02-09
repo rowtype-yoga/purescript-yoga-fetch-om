@@ -29,6 +29,8 @@ import Record as Record
 import Type.Proxy (Proxy(..))
 import Yoga.HTTP.API.Path (class PathPattern, pathPattern)
 
+foreign import encodeURIComponent_ :: String -> String
+
 class BuildUrl :: forall k. k -> Row Type -> Row Type -> Constraint
 class BuildUrl segments pathParams queryParams | segments -> pathParams queryParams where
   buildUrl :: String -> Proxy segments -> Record pathParams -> Record queryParams -> String
@@ -119,7 +121,7 @@ instance
     where
     acc' = case Record.get (Proxy :: _ name) rec of
       Nothing -> acc
-      Just value -> Array.snoc acc (reflectSymbol (Proxy :: _ name) <> "=" <> serializeParam value)
+      Just value -> Array.snoc acc (encodeURIComponent_ (reflectSymbol (Proxy :: _ name)) <> "=" <> encodeURIComponent_ (serializeParam value))
 
 else instance
   ( IsSymbol name
@@ -131,7 +133,7 @@ else instance
   appendQueryParamsRL _ rec acc =
     appendQueryParamsRL (Proxy :: _ tail) rec (Array.snoc acc pair)
     where
-    pair = reflectSymbol (Proxy :: _ name) <> "=" <> serializeParam (Record.get (Proxy :: _ name) rec)
+    pair = encodeURIComponent_ (reflectSymbol (Proxy :: _ name)) <> "=" <> encodeURIComponent_ (serializeParam (Record.get (Proxy :: _ name) rec))
 
 class SerializeParam :: Type -> Constraint
 class SerializeParam a where

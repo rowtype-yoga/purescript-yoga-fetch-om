@@ -22,7 +22,10 @@ module Yoga.Fetch.Om.Simple
 import Prelude
 
 import Data.HTTP.Method (Method(..))
+import Data.Array as Array
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
+import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Effect.Class (liftEffect)
 import JS.Fetch as Fetch
@@ -41,7 +44,8 @@ import JS.Fetch.Response as Resp
 import Promise.Aff as Promise
 import Type.Row.Homogeneous (class Homogeneous)
 -- PlainText removed, using local phantom type
-import Yoga.JSON (class ReadForeign, class WriteForeign, readJSON_, writeJSON)
+import Yoga.JSON (class ReadForeign, class WriteForeign, readJSON, writeJSON)
+import Yoga.JSON.Error (withStringErrors)
 import Yoga.Om (Om, fromAff, throw)
 
 type FetchError = { status :: Int, body :: String }
@@ -50,15 +54,15 @@ type FetchResponse a = { headers :: Headers, body :: a }
 
 class DecodeResponse :: forall k. k -> Type -> Constraint
 class DecodeResponse a result | a -> result where
-  decodeResponse :: String -> Maybe result
+  decodeResponse :: String -> Either String result
 
 data PlainTextResponse
 
 instance DecodeResponse PlainTextResponse String where
-  decodeResponse = Just
+  decodeResponse = Right
 
 else instance ReadForeign a => DecodeResponse a a where
-  decodeResponse = readJSON_
+  decodeResponse = withStringErrors <<< readJSON
 
 simpleFetch
   :: forall @a result headers ctx err
@@ -76,19 +80,21 @@ simpleFetch method headers url maybeBody = do
   let respHeaders = Resp.headers resp
   if status >= 200 && status < 300 then
     case decodeResponse @a respText of
-      Nothing -> throw { fetchError: { status, body: respText } }
-      Just body -> pure { headers: respHeaders, body }
+      Left errs -> throw { fetchError: { status, body: "Failed to parse response:\n" <> errs <> "\nBody: " <> respText } }
+      Right body -> pure { headers: respHeaders, body }
   else
     throw { fetchError: { status, body: respText } }
   where
   doFetch = do
     request <- Request.new url options # liftEffect
     Promise.toAffE $ Fetch.fetch request
-  contentTypeHeaders = case maybeBody of
-    Nothing -> Headers.empty
-    Just _ -> Headers.fromFoldable [ "Content-Type" /\ "application/json" ]
-  allHeaders = Headers.fromFoldable
-    (Headers.toArray contentTypeHeaders <> Headers.toArray (Headers.fromRecord headers))
+  customArr = Headers.toArray (Headers.fromRecord headers)
+  hasContentType = Array.any (\t -> fst t == "content-type") customArr
+  contentTypeArr = case maybeBody of
+    Nothing -> []
+    Just _ | hasContentType -> []
+    Just _ -> [ "Content-Type" /\ "application/json" ]
+  allHeaders = Headers.fromFoldable (contentTypeArr <> customArr)
   reqBody = case maybeBody of
     Nothing -> Body.empty
     Just b -> Body.fromString b
@@ -96,9 +102,9 @@ simpleFetch method headers url maybeBody = do
     { method
     , headers: allHeaders
     , body: reqBody
-    , credentials: Credentials.Include
+    , credentials: Credentials.SameOrigin
     , mode: Mode.Cors
-    , referrer: Referrer.ReferrerClient
+    , referrer: Referrer.ReferrerNone
     , referrerPolicy: ReferrerPolicy.NoReferrer
     , integrity: Integrity ""
     , duplex: Duplex.Half

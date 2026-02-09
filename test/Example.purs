@@ -36,4 +36,11 @@ type UserAPI =
         ( noContent :: { body :: {} }
         , notFound :: { body :: ErrorMessage }
         )
+  , createUserAuth ::
+      Route POST
+        (Path "users")
+        { headers :: Record (authorization :: String), body :: JSON CreateUserRequest }
+        ( created :: { body :: User }
+        , badRequest :: { body :: ErrorMessage }
+        )
   }

@@ -2,15 +2,12 @@ module Yoga.Fetch.Om.ClientFn
   ( class BuildClientFn
   , buildClientFn
   , class CheckBodyIsUnit
-  , class CheckRowEmpty
   , IsUnit
   , IsNotUnit
-  , IsEmpty
-  , IsNonEmpty
   ) where
 
 import Data.Unit (Unit, unit)
-import Prim.RowList (class RowToList, RowList)
+import Prim.RowList (RowList)
 import Prim.RowList as RL
 import Type.Proxy (Proxy)
 import Unsafe.Coerce (unsafeCoerce)
@@ -18,8 +15,6 @@ import Yoga.Om (Om)
 
 data IsUnit
 data IsNotUnit
-data IsEmpty
-data IsNonEmpty
 
 class CheckBodyIsUnit :: Type -> Type -> Constraint
 class CheckBodyIsUnit body flag | body -> flag
@@ -27,27 +22,22 @@ class CheckBodyIsUnit body flag | body -> flag
 instance CheckBodyIsUnit Unit IsUnit
 else instance CheckBodyIsUnit body IsNotUnit
 
-class CheckRowEmpty :: Row Type -> Type -> Constraint
-class CheckRowEmpty row flag | row -> flag
-
-instance RowToList row RL.Nil => CheckRowEmpty row IsEmpty
-else instance CheckRowEmpty row IsNonEmpty
-
 class BuildClientFn
-  :: RowList Type -> Type -> Type -> Type -> Row Type -> Row Type -> Row Type -> Type -> Type -> Constraint
+  :: RowList Type -> RowList Type -> Type -> Type -> Row Type -> Row Type -> Row Type -> Type -> Type -> Constraint
 class
-  BuildClientFn pathQueryRL headersFlag bodyFlag body pathQuery headers errorRow result fn
-  | pathQueryRL headersFlag bodyFlag body pathQuery headers errorRow result -> fn where
+  BuildClientFn pathQueryRL headersRL bodyFlag body pathQuery headers errorRow result fn
+  | pathQueryRL headersRL bodyFlag body pathQuery headers errorRow result -> fn where
   buildClientFn
     :: Proxy pathQueryRL
-    -> Proxy headersFlag
+    -> Proxy headersRL
     -> Proxy bodyFlag
     -> (Record pathQuery -> Record headers -> body -> Om {} errorRow result)
     -> fn
 
+-- No path/query, no headers, no body
 instance
   BuildClientFn RL.Nil
-    IsEmpty
+    RL.Nil
     IsUnit
     Unit
     pq
@@ -57,9 +47,10 @@ instance
     (Om {} errorRow result) where
   buildClientFn _ _ _ f = f (unsafeCoerce {}) (unsafeCoerce {}) unit
 
+-- No path/query, no headers, with body
 instance
   BuildClientFn RL.Nil
-    IsEmpty
+    RL.Nil
     IsNotUnit
     body
     pq
@@ -69,9 +60,10 @@ instance
     (body -> Om {} errorRow result) where
   buildClientFn _ _ _ f = \b -> f (unsafeCoerce {}) (unsafeCoerce {}) b
 
+-- No path/query, with headers, no body
 instance
   BuildClientFn RL.Nil
-    IsNonEmpty
+    (RL.Cons n t tl)
     IsUnit
     Unit
     pq
@@ -81,9 +73,10 @@ instance
     (Record h -> Om {} errorRow result) where
   buildClientFn _ _ _ f = \hdrs -> f (unsafeCoerce {}) hdrs unit
 
+-- No path/query, with headers, with body
 instance
   BuildClientFn RL.Nil
-    IsNonEmpty
+    (RL.Cons n t tl)
     IsNotUnit
     body
     pq
@@ -93,9 +86,10 @@ instance
     (Record h -> body -> Om {} errorRow result) where
   buildClientFn _ _ _ f = \hdrs b -> f (unsafeCoerce {}) hdrs b
 
+-- With path/query, no headers, no body
 instance
   BuildClientFn (RL.Cons n t tl)
-    IsEmpty
+    RL.Nil
     IsUnit
     Unit
     pq
@@ -105,9 +99,10 @@ instance
     (Record pq -> Om {} errorRow result) where
   buildClientFn _ _ _ f = \pqr -> f pqr (unsafeCoerce {}) unit
 
+-- With path/query, no headers, with body
 instance
   BuildClientFn (RL.Cons n t tl)
-    IsEmpty
+    RL.Nil
     IsNotUnit
     body
     pq
@@ -117,9 +112,10 @@ instance
     (Record pq -> body -> Om {} errorRow result) where
   buildClientFn _ _ _ f = \pqr b -> f pqr (unsafeCoerce {}) b
 
+-- With path/query, with headers, no body
 instance
   BuildClientFn (RL.Cons n t tl)
-    IsNonEmpty
+    (RL.Cons hn ht htl)
     IsUnit
     Unit
     pq
@@ -129,9 +125,10 @@ instance
     (Record pq -> Record h -> Om {} errorRow result) where
   buildClientFn _ _ _ f = \pqr hdrs -> f pqr hdrs unit
 
+-- With path/query, with headers, with body
 instance
   BuildClientFn (RL.Cons n t tl)
-    IsNonEmpty
+    (RL.Cons hn ht htl)
     IsNotUnit
     body
     pq

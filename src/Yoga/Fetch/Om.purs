@@ -8,6 +8,8 @@ module Yoga.Fetch.Om
   , class DeriveClientFn
   , deriveClientFn
   , class RecordRow
+  , class ToHeaders
+  , toHeaders
   , module Yoga.HTTP.API.Route
   , module Yoga.HTTP.API.Path
   , module Yoga.Fetch.Om.Simple
@@ -23,9 +25,12 @@ import Prim.RowList as RL
 import Record as Record
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
+import JS.Fetch.Headers (Headers)
+import JS.Fetch.Headers as Headers
+import Type.Row.Homogeneous (class Homogeneous)
 import Yoga.Fetch.Om.BuildUrl (class BuildUrl, buildUrl)
 import Yoga.Fetch.Om.Simple (class DecodeResponse, decodeResponse, FetchError, FetchResponse, get, getWithHeaders, delete, deleteWithHeaders, delete_, post, postWithHeaders, post_, put, putWithHeaders, put_, patch, patchWithHeaders, patch_)
-import Yoga.Fetch.Om.ClientFn (class BuildClientFn, class CheckBodyIsUnit, class CheckRowEmpty, buildClientFn)
+import Yoga.Fetch.Om.ClientFn (class BuildClientFn, class CheckBodyIsUnit, buildClientFn)
 import Yoga.Fetch.Om.ExtractParams (class ExtractRequestBody, class ExtractRequestHeaders)
 import Yoga.Fetch.Om.MakeRequest (class MakeRequest, class SerializeBody, makeRequest, serializeBody)
 import Yoga.Fetch.Om.ParseResponse (class ParseResponse, parseResponse)
@@ -41,6 +46,16 @@ class RecordRow :: Type -> Row Type -> Constraint
 class RecordRow t r | t -> r
 
 instance RecordRow (Record r) r
+
+class ToHeaders :: RowList Type -> Row Type -> Constraint
+class ToHeaders headersRL headers where
+  toHeaders :: Proxy headersRL -> Record headers -> Headers
+
+instance ToHeaders RL.Nil headers where
+  toHeaders _ _ = Headers.empty
+
+else instance Homogeneous headers String => ToHeaders headersRL headers where
+  toHeaders _ = Headers.fromRecord
 
 class DeriveClientFn :: forall k1. Type -> k1 -> Type -> Row Type -> Row Type -> Row Type -> Type -> Type -> Constraint
 class
@@ -64,18 +79,20 @@ instance
   , Row.Union pathParams queryParams pathQuery
   , Row.Nub pathQuery pathQuery
   , RowToList pathQuery pathQueryRL
-  , CheckRowEmpty headers headersFlag
+  , RowToList headers headersRL
+  , ToHeaders headersRL headers
   , CheckBodyIsUnit body bodyFlag
-  , BuildClientFn pathQueryRL headersFlag bodyFlag body pathQuery headers errorRow result fn
+  , BuildClientFn pathQueryRL headersRL bodyFlag body pathQuery headers errorRow result fn
   ) =>
   DeriveClientFn method segments request response errorRow successRow result fn where
   deriveClientFn baseUrl _ =
-    buildClientFn (Proxy :: _ pathQueryRL) (Proxy :: _ headersFlag) (Proxy :: _ bodyFlag) impl
+    buildClientFn (Proxy :: _ pathQueryRL) (Proxy :: _ headersRL) (Proxy :: _ bodyFlag) impl
     where
     impl :: Record pathQuery -> Record headers -> body -> Om {} errorRow result
-    impl pathQueryRec _headers bodyVal = do
+    impl pathQueryRec headersRec bodyVal = do
       let url = buildUrl baseUrl (Proxy :: _ segments) pathParamsRec queryParamsRec
-      fetchResp <- makeRequest (Proxy :: _ method) url (serializeBody bodyVal) # fromAff
+      let hdrs = toHeaders (Proxy :: _ headersRL) headersRec
+      fetchResp <- makeRequest (Proxy :: _ method) url hdrs (serializeBody bodyVal) # fromAff
       variant <- parseResponse fetchResp :: Om {} errorRow (Variant successRow)
       variantOrValue (Proxy :: _ successRL) variant # pure
       where

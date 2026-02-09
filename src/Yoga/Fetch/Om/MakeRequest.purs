@@ -9,11 +9,14 @@ module Yoga.Fetch.Om.MakeRequest
 import Prelude
 
 import Data.HTTP.Method (Method(..))
+import Data.Array as Array
 import Data.Maybe (Maybe(..))
+import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import JS.Fetch as Fetch
+import JS.Fetch.Headers (Headers)
 import JS.Fetch.Headers as Headers
 import JS.Fetch.Request as Request
 import JS.Fetch.RequestBody as Body
@@ -54,26 +57,31 @@ makeRequest
    . MakeRequest method
   => Proxy method
   -> String
+  -> Headers
   -> Maybe String
   -> Aff FetchResponse.Response
-makeRequest proxy url maybeBody = do
+makeRequest proxy url customHeaders maybeBody = do
   request <- Request.new url options # liftEffect
   Promise.toAffE $ Fetch.fetch request
   where
   method = httpMethod proxy
-  headers = case maybeBody of
-    Nothing -> Headers.empty
-    Just _ -> Headers.fromFoldable [ "Content-Type" /\ "application/json" ]
+  customArr = Headers.toArray customHeaders
+  hasContentType = Array.any (\t -> fst t == "content-type") customArr
+  contentTypeArr = case maybeBody of
+    Nothing -> []
+    Just _ | hasContentType -> []
+    Just _ -> [ "Content-Type" /\ "application/json" ]
+  allHeaders = Headers.fromFoldable (contentTypeArr <> customArr)
   body = case maybeBody of
     Nothing -> Body.empty
     Just b -> Body.fromString b
   options =
     { method
-    , headers
+    , headers: allHeaders
     , body
-    , credentials: Credentials.Include
+    , credentials: Credentials.SameOrigin
     , mode: Mode.Cors
-    , referrer: Referrer.ReferrerClient
+    , referrer: Referrer.ReferrerNone
     , referrerPolicy: ReferrerPolicy.NoReferrer
     , integrity: Integrity ""
     , duplex: Duplex.Half
