@@ -1,6 +1,7 @@
 module Yoga.Fetch.Om
   ( client
   , deriveClient
+  , polymorphic
   , class DeriveClient
   , deriveClientImpl
   , class DeriveClientRL
@@ -119,6 +120,18 @@ client baseUrl = deriveClientImpl baseUrl (Proxy :: _ { | routesRow })
 -- | ```
 deriveClient :: forall @routesRow clientsRow. DeriveClient routesRow clientsRow => String -> Record clientsRow
 deriveClient baseUrl = deriveClientImpl baseUrl (Proxy :: _ { | routesRow })
+
+-- | Cast a generated client to a polymorphic type signature
+-- | This allows you to add explicit forall quantification for better documentation
+-- |
+-- | ```purescript
+-- | api :: forall ctx err.
+-- |   { getUser :: { id :: Int } -> Om ctx (notFound :: ErrorMessage | err) User
+-- |   }
+-- | api = polymorphic $ client @UserAPI "https://api.example.com"
+-- | ```
+polymorphic :: forall a b. a -> b
+polymorphic = unsafeCoerce
 
 instance
   ( RowToList routesRow rl

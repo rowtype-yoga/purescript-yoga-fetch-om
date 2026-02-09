@@ -5,7 +5,7 @@ import Prelude
 import Data.Array (length)
 import Data.Maybe (Maybe(..))
 import Effect.Class.Console (log)
-import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Route, JSON, Path, type (/), type (:), type (:?), client)
+import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Route, JSON, Path, type (/), type (:), type (:?), client, polymorphic)
 import Yoga.Om (Om, handleErrors)
 
 type User =
@@ -73,15 +73,17 @@ type UserAPI =
         )
   }
 
+-- Generated client with polymorphic type annotation
 api
-  :: { createUser :: CreateUserRequest -> Om {} (badRequest :: ErrorMessage) User
-     , createUserAuth :: { authorization :: String } -> CreateUserRequest -> Om {} (badRequest :: ErrorMessage) User
-     , deleteUser :: { id :: Int } -> Om {} (notFound :: ErrorMessage) {}
-     , getUser :: { id :: Int } -> Om {} (notFound :: ErrorMessage) User
-     , listUsers :: { limit :: Maybe Int, offset :: Maybe Int } -> Om {} () (Array User)
-     , updateUser :: { id :: Int } -> UpdateUserRequest -> Om {} (badRequest :: ErrorMessage, notFound :: ErrorMessage) User
+  :: forall ctx err
+   . { createUser :: CreateUserRequest -> Om ctx (badRequest :: ErrorMessage | err) User
+     , createUserAuth :: { authorization :: String } -> CreateUserRequest -> Om ctx (badRequest :: ErrorMessage | err) User
+     , deleteUser :: { id :: Int } -> Om ctx (notFound :: ErrorMessage | err) {}
+     , getUser :: { id :: Int } -> Om ctx (notFound :: ErrorMessage | err) User
+     , listUsers :: { limit :: Maybe Int, offset :: Maybe Int } -> Om ctx err (Array User)
+     , updateUser :: { id :: Int } -> UpdateUserRequest -> Om ctx (badRequest :: ErrorMessage, notFound :: ErrorMessage | err) User
      }
-api = client @UserAPI "https://api.example.com"
+api = polymorphic $ client @UserAPI "https://api.example.com"
 
 exampleGetUser :: Om {} (notFound :: ErrorMessage) Unit
 exampleGetUser = do
