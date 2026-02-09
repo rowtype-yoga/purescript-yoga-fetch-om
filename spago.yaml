@@ -2,7 +2,8 @@ workspace:
   packageSet:
     registry: 73.0.0
   extraPackages:
-    yoga-fastify-om: "0.1.0"
+    yoga-fastify-om:
+      path: ../purescript-yoga-fastify-om
     yoga-fastify: "0.2.3"
     yoga-http-api:
       path: ../purescript-yoga-http-api
@@ -15,7 +16,7 @@ workspace:
 package:
   name: yoga-fetch-om
   publish:
-    version: 0.3.0
+    version: 0.5.0
     license: MIT
     location:
       githubOwner: rowtype-yoga

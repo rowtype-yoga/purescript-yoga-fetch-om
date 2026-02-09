@@ -681,7 +681,9 @@
     },
     "extra_packages": {
       "yoga-fastify": "0.2.3",
-      "yoga-fastify-om": "0.1.0",
+      "yoga-fastify-om": {
+        "path": "../purescript-yoga-fastify-om"
+      },
       "yoga-http-api": {
         "path": "../purescript-yoga-http-api"
       },
@@ -2039,9 +2041,8 @@
       ]
     },
     "yoga-fastify-om": {
-      "type": "registry",
-      "version": "0.1.0",
-      "integrity": "sha256-cgkNDv2BP29DRpw/kY2p7vXhVUofDBZ7lkm1LHsE1Kg=",
+      "type": "local",
+      "path": "../purescript-yoga-fastify-om",
       "dependencies": [
         "aff",
         "console",

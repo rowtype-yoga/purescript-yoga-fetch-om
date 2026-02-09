@@ -9,20 +9,20 @@ import Test.Spec (Spec, around, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Yoga.Fastify.Fastify as F
 import Yoga.Fastify.Fastify (Port(..), Host(..))
-import Yoga.Fastify.Om.Route (Handler, Request, handle, respond, handleRoute)
+import Yoga.Fastify.Om.API (registerAPI)
+import Yoga.Fastify.Om.Route (Handler, handle, respond)
 import Yoga.Fetch.Om (GET, Route, type (/), type (:), client)
 import Yoga.Om (Om, ask, runOm)
 
 type User = { id :: Int, name :: String }
 
+type GetUserRoute = Route GET ("users" / "id" : Int) {} (ok :: { body :: User })
+
 type TestAPI =
-  { getUser :: Route GET ("users" / "id" : Int) (Request {}) (ok :: { body :: User })
+  { getUser :: GetUserRoute
   }
 
-api
-  :: forall ctx err
-   . { getUser :: { id :: Int } -> Om ctx err User
-     }
+api :: forall ctx err. { getUser :: { id :: Int } -> Om ctx err User }
 api = client @TestAPI "http://localhost:44931"
 
 spec :: Spec Unit
@@ -55,14 +55,12 @@ withServer test = bracket acquire release (\_ -> test unit)
   acquire = do
     fastify <- liftEffect do
       f <- F.fastify {}
-      handleRoute getUserHandler f
+      registerAPI { getUser: getUserHandler } f
       pure f
     void $ F.listen { port: Port 44931, host: Host "0.0.0.0" } fastify
     pure fastify
 
   release = F.close
-
-type GetUserRoute = Route GET ("users" / "id" : Int) (Request {}) (ok :: { body :: User })
 
 getUserHandler :: Handler GetUserRoute
 getUserHandler = handle do
