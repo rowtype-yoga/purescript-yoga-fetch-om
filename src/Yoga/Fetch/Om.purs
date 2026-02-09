@@ -59,8 +59,8 @@ else instance Homogeneous headers String => ToHeaders headersRL headers where
 
 class DeriveClientFn :: forall k1. Type -> k1 -> Type -> Row Type -> Row Type -> Row Type -> Type -> Type -> Constraint
 class
-  DeriveClientFn method segments request response errorRow successRow result fn
-  | method segments request response -> errorRow successRow result fn where
+  DeriveClientFn method segments request response routeErrors successRow result fn
+  | method segments request response -> routeErrors successRow result fn where
   deriveClientFn :: String -> Proxy (Route method segments request response) -> fn
 
 instance
@@ -72,8 +72,8 @@ instance
   , BuildUrl segments pathParams queryParams
   , MakeRequest method
   , SerializeBody body
-  , SplitResponses response successRow errorRow
-  , ParseResponse errorRow successRow
+  , SplitResponses response successRow routeErrors
+  , ParseResponse routeErrors successRow
   , RowToList successRow successRL
   , VariantOrValue successRL successRow result
   , Row.Union pathParams queryParams pathQuery
@@ -82,18 +82,18 @@ instance
   , RowToList headers headersRL
   , ToHeaders headersRL headers
   , CheckBodyIsUnit body bodyFlag
-  , BuildClientFn pathQueryRL headersRL bodyFlag body pathQuery headers errorRow result fn
+  , BuildClientFn pathQueryRL headersRL bodyFlag body pathQuery headers routeErrors result fn
   ) =>
-  DeriveClientFn method segments request response errorRow successRow result fn where
+  DeriveClientFn method segments request response routeErrors successRow result fn where
   deriveClientFn baseUrl _ =
     buildClientFn (Proxy :: _ pathQueryRL) (Proxy :: _ headersRL) (Proxy :: _ bodyFlag) impl
     where
-    impl :: Record pathQuery -> Record headers -> body -> Om {} errorRow result
+    impl :: Record pathQuery -> Record headers -> body -> Om (Record ()) routeErrors result
     impl pathQueryRec headersRec bodyVal = do
       let url = buildUrl baseUrl (Proxy :: _ segments) pathParamsRec queryParamsRec
       let hdrs = toHeaders (Proxy :: _ headersRL) headersRec
       fetchResp <- makeRequest (Proxy :: _ method) url hdrs (serializeBody bodyVal) # fromAff
-      variant <- parseResponse fetchResp :: Om {} errorRow (Variant successRow)
+      variant <- parseResponse fetchResp :: Om (Record ()) routeErrors (Variant successRow)
       variantOrValue (Proxy :: _ successRL) variant # pure
       where
       pathParamsRec = unsafeCoerce pathQueryRec :: Record pathParams
@@ -136,7 +136,7 @@ instance DeriveClientRL RL.Nil acc acc where
 
 instance
   ( IsSymbol label
-  , DeriveClientFn method segments request response errorRow successRow result fn
+  , DeriveClientFn method segments request response routeErrors successRow result fn
   , DeriveClientRL tail acc1 acc2
   , Row.Cons label fn acc2 out
   , Row.Lacks label acc2

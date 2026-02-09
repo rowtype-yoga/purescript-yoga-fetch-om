@@ -31,7 +31,7 @@ class
     :: Proxy pathQueryRL
     -> Proxy headersRL
     -> Proxy bodyFlag
-    -> (Record pathQuery -> Record headers -> body -> Om {} errorRow result)
+    -> (Record pathQuery -> Record headers -> body -> Om (Record ()) errorRow result)
     -> fn
 
 -- No path/query, no headers, no body
@@ -44,8 +44,8 @@ instance
     h
     errorRow
     result
-    (Om {} errorRow result) where
-  buildClientFn _ _ _ f = f (unsafeCoerce {}) (unsafeCoerce {}) unit
+    (Om (Record ()) errorRow result) where
+  buildClientFn _ _ _ f = unsafeCoerce (f (unsafeCoerce {}) (unsafeCoerce {}) unit)
 
 -- No path/query, no headers, with body
 instance
@@ -57,8 +57,8 @@ instance
     h
     errorRow
     result
-    (body -> Om {} errorRow result) where
-  buildClientFn _ _ _ f = \b -> f (unsafeCoerce {}) (unsafeCoerce {}) b
+    (body -> Om (Record ()) errorRow result) where
+  buildClientFn _ _ _ f = unsafeCoerce (\b -> f (unsafeCoerce {}) (unsafeCoerce {}) b)
 
 -- No path/query, with headers, no body
 instance
@@ -70,8 +70,8 @@ instance
     h
     errorRow
     result
-    (Record h -> Om {} errorRow result) where
-  buildClientFn _ _ _ f = \hdrs -> f (unsafeCoerce {}) hdrs unit
+    (Record h -> Om (Record ()) errorRow result) where
+  buildClientFn _ _ _ f = unsafeCoerce (\hdrs -> f (unsafeCoerce {}) hdrs unit)
 
 -- No path/query, with headers, with body
 instance
@@ -83,8 +83,8 @@ instance
     h
     errorRow
     result
-    (Record h -> body -> Om {} errorRow result) where
-  buildClientFn _ _ _ f = \hdrs b -> f (unsafeCoerce {}) hdrs b
+    (Record h -> body -> Om (Record ()) errorRow result) where
+  buildClientFn _ _ _ f = unsafeCoerce (\hdrs b -> f (unsafeCoerce {}) hdrs b)
 
 -- With path/query, no headers, no body
 instance
@@ -96,8 +96,8 @@ instance
     h
     errorRow
     result
-    (Record pq -> Om {} errorRow result) where
-  buildClientFn _ _ _ f = \pqr -> f pqr (unsafeCoerce {}) unit
+    (Record pq -> Om (Record ()) errorRow result) where
+  buildClientFn _ _ _ f = unsafeCoerce (\pqr -> f pqr (unsafeCoerce {}) unit)
 
 -- With path/query, no headers, with body
 instance
@@ -109,8 +109,8 @@ instance
     h
     errorRow
     result
-    (Record pq -> body -> Om {} errorRow result) where
-  buildClientFn _ _ _ f = \pqr b -> f pqr (unsafeCoerce {}) b
+    (Record pq -> body -> Om (Record ()) errorRow result) where
+  buildClientFn _ _ _ f = unsafeCoerce (\pqr b -> f pqr (unsafeCoerce {}) b)
 
 -- With path/query, with headers, no body
 instance
@@ -122,8 +122,8 @@ instance
     h
     errorRow
     result
-    (Record pq -> Record h -> Om {} errorRow result) where
-  buildClientFn _ _ _ f = \pqr hdrs -> f pqr hdrs unit
+    (Record pq -> Record h -> Om (Record ()) errorRow result) where
+  buildClientFn _ _ _ f = unsafeCoerce (\pqr hdrs -> f pqr hdrs unit)
 
 -- With path/query, with headers, with body
 instance
@@ -135,5 +135,5 @@ instance
     h
     errorRow
     result
-    (Record pq -> Record h -> body -> Om {} errorRow result) where
-  buildClientFn _ _ _ f = f
+    (Record pq -> Record h -> body -> Om (Record ()) errorRow result) where
+  buildClientFn _ _ _ f = unsafeCoerce f
