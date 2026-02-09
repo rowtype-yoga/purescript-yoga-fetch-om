@@ -4,7 +4,8 @@ workspace:
   extraPackages:
     yoga-fastify-om: "0.1.0"
     yoga-fastify: "0.2.3"
-    yoga-http-api: "0.1.4"
+    yoga-http-api:
+      path: ../purescript-yoga-http-api
     yoga-om: "1.2.2"
     yoga-om-layer: "1.0.6"
     yoga-om-strom: "0.2.0"
@@ -49,7 +50,8 @@ package:
   test:
     main: Test.Main
     dependencies:
-      - vitest: ">=1.0.0 <3.0.0"
+      - spec: ">=8.0.0 <9.0.0"
+      - spec-discovery: ">=8.0.0 <9.0.0"
       - console: ">=6.0.0 <7.0.0"
       - yoga-fastify-om: ">=0.1.0 <0.2.0"
       - refs: ">=6.0.0 <7.0.0"

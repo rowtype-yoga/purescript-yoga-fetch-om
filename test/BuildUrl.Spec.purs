@@ -3,116 +3,97 @@ module BuildUrl.Spec where
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Effect (Effect)
-import Effect.Aff (Aff)
+import Test.Spec (Spec, describe, it)
+import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
 import Yoga.Fetch.Om.BuildUrl (buildUrl, substitutePathParams, appendQueryParams)
 import Yoga.HTTP.API.Path (Path, type (/), type (:))
-import ViTest (ViTest, describe, test)
-import ViTest.Expect (expectToBe)
-
-expectToEqual :: forall a. Eq a => a -> a -> Aff Unit
-expectToEqual expected actual = expectToBe true (expected == actual)
 
 --------------------------------------------------------------------------------
 -- SubstitutePathParams Tests
 --------------------------------------------------------------------------------
 
-testSubstitutePathParams :: Effect ViTest
-testSubstitutePathParams = describe "substitutePathParams" $ do
-  _ <- test "substitutes single path param" do
-    let
-      result = substitutePathParams @(id :: Int) { id: 42 } "/users/:id"
-    expectToEqual "/users/42" result
+spec :: Spec Unit
+spec = do
+  describe "substitutePathParams" do
+    it "substitutes single path param" do
+      let result = substitutePathParams @(id :: Int) { id: 42 } "/users/:id"
+      result `shouldEqual` "/users/42"
 
-  _ <- test "substitutes multiple path params" do
-    let
-      result = substitutePathParams @(userId :: Int, postId :: Int)
-        { userId: 1, postId: 99 }
-        "/users/:userId/posts/:postId"
-    expectToEqual "/users/1/posts/99" result
+    it "substitutes multiple path params" do
+      let
+        result = substitutePathParams @(userId :: Int, postId :: Int)
+          { userId: 1, postId: 99 }
+          "/users/:userId/posts/:postId"
+      result `shouldEqual` "/users/1/posts/99"
 
-  _ <- test "handles String params" do
-    let
-      result = substitutePathParams @(slug :: String)
-        { slug: "hello-world" }
-        "/posts/:slug"
-    expectToEqual "/posts/hello-world" result
+    it "handles String params" do
+      let
+        result = substitutePathParams @(slug :: String)
+          { slug: "hello-world" }
+          "/posts/:slug"
+      result `shouldEqual` "/posts/hello-world"
 
-  test "handles empty params" do
-    let
-      result = substitutePathParams @() {} "/users"
-    expectToEqual "/users" result
+    it "handles empty params" do
+      let result = substitutePathParams @() {} "/users"
+      result `shouldEqual` "/users"
 
---------------------------------------------------------------------------------
--- AppendQueryParams Tests
---------------------------------------------------------------------------------
+  describe "appendQueryParams" do
+    it "appends single query param" do
+      let result = appendQueryParams @(limit :: Int) { limit: 10 } "/users"
+      result `shouldEqual` "/users?limit=10"
 
-testAppendQueryParams :: Effect ViTest
-testAppendQueryParams = describe "appendQueryParams" $ do
-  _ <- test "appends single query param" do
-    let
-      result = appendQueryParams @(limit :: Int) { limit: 10 } "/users"
-    expectToEqual "/users?limit=10" result
+    it "appends multiple query params" do
+      let
+        result = appendQueryParams @(limit :: Int, offset :: Int)
+          { limit: 10, offset: 20 }
+          "/users"
+      result `shouldEqual` "/users?limit=10&offset=20"
 
-  _ <- test "appends multiple query params" do
-    let
-      result = appendQueryParams @(limit :: Int, offset :: Int)
-        { limit: 10, offset: 20 }
-        "/users"
-    expectToEqual "/users?limit=10&offset=20" result
+    it "handles Maybe params - Just" do
+      let
+        result = appendQueryParams @(limit :: Maybe Int)
+          { limit: Just 10 }
+          "/users"
+      result `shouldEqual` "/users?limit=10"
 
-  _ <- test "handles Maybe params - Just" do
-    let
-      result = appendQueryParams @(limit :: Maybe Int)
-        { limit: Just 10 }
-        "/users"
-    expectToEqual "/users?limit=10" result
+    it "handles Maybe params - Nothing" do
+      let
+        result = appendQueryParams @(limit :: Maybe Int)
+          { limit: Nothing }
+          "/users"
+      result `shouldEqual` "/users"
 
-  _ <- test "handles Maybe params - Nothing" do
-    let
-      result = appendQueryParams @(limit :: Maybe Int)
-        { limit: Nothing }
-        "/users"
-    expectToEqual "/users" result
+    it "handles mixed Maybe and required params" do
+      let
+        result = appendQueryParams @(limit :: Maybe Int, offset :: Int)
+          { limit: Nothing, offset: 20 }
+          "/users"
+      result `shouldEqual` "/users?offset=20"
 
-  _ <- test "handles mixed Maybe and required params" do
-    let
-      result = appendQueryParams @(limit :: Maybe Int, offset :: Int)
-        { limit: Nothing, offset: 20 }
-        "/users"
-    expectToEqual "/users?offset=20" result
+    it "handles empty query params" do
+      let result = appendQueryParams @() {} "/users"
+      result `shouldEqual` "/users"
 
-  _ <- test "handles empty query params" do
-    let
-      result = appendQueryParams @() {} "/users"
-    expectToEqual "/users" result
+    it "URL-encodes special characters in values" do
+      let result = appendQueryParams @(search :: String) { search: "hello world&more=yes" } "/users"
+      result `shouldEqual` "/users?search=hello%20world%26more%3Dyes"
 
-  test "URL-encodes special characters in values" do
-    let
-      result = appendQueryParams @(search :: String) { search: "hello world&more=yes" } "/users"
-    expectToEqual "/users?search=hello%20world%26more%3Dyes" result
+  describe "buildUrl" do
+    it "builds URL with path params only" do
+      let
+        result = buildUrl
+          "https://api.example.com"
+          (Proxy :: _ (Path ("users" / "id" : Int)))
+          { id: 42 }
+          {}
+      result `shouldEqual` "https://api.example.com/users/42"
 
---------------------------------------------------------------------------------
--- BuildUrl Tests
---------------------------------------------------------------------------------
-
-testBuildUrl :: Effect ViTest
-testBuildUrl = describe "buildUrl" $ do
-  _ <- test "builds URL with path params only" do
-    let
-      result = buildUrl
-        "https://api.example.com"
-        (Proxy :: _ (Path ("users" / "id" : Int)))
-        { id: 42 }
-        {}
-    expectToEqual "https://api.example.com/users/42" result
-
-  test "builds URL with query params only" do
-    let
-      result = buildUrl
-        "https://api.example.com"
-        (Proxy :: _ (Path "users"))
-        {}
-        { limit: 10, offset: 20 }
-    expectToEqual "https://api.example.com/users?limit=10&offset=20" result
+    it "builds URL with query params only" do
+      let
+        result = buildUrl
+          "https://api.example.com"
+          (Proxy :: _ (Path "users"))
+          {}
+          { limit: 10, offset: 20 }
+      result `shouldEqual` "https://api.example.com/users?limit=10&offset=20"

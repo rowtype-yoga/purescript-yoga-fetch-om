@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "spago build",
-    "test": "spago build && bunx vitest run",
+    "test": "spago test",
     "clean": "rm -rf output .spago",
     "watch": "spago build --watch",
     "repl": "spago repl",

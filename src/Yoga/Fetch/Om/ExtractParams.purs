@@ -10,6 +10,7 @@ import Data.Unit (Unit)
 import Prim.RowList (class RowToList, RowList)
 import Prim.RowList as RL
 import Yoga.HTTP.API.Route.Encoding (JSON, FormData, NoBody)
+import Yoga.HTTP.API.Route.Handler (Request)
 
 class ExtractRequestBody :: Type -> Type -> Constraint
 class ExtractRequestBody request body | request -> body
@@ -20,6 +21,9 @@ instance
   , UnwrapEncoding encoding body
   ) =>
   ExtractRequestBody (Record row) body
+else instance
+  ExtractRequestBody (Record row) body =>
+  ExtractRequestBody (Request (Record row)) body
 
 class ExtractRequestHeaders :: Type -> Row Type -> Constraint
 class ExtractRequestHeaders request headers | request -> headers
@@ -29,6 +33,9 @@ instance
   , FindHeaders rl headers
   ) =>
   ExtractRequestHeaders (Record row) headers
+else instance
+  ExtractRequestHeaders (Record row) headers =>
+  ExtractRequestHeaders (Request (Record row)) headers
 
 class FindBodyType :: RowList Type -> Type -> Constraint
 class FindBodyType rl encoding | rl -> encoding

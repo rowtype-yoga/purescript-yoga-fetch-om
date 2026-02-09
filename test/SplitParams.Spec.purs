@@ -2,22 +2,13 @@ module SplitParams.Spec where
 
 import Prelude
 
-import Effect (Effect)
-import Effect.Aff (Aff)
+import Test.Spec (Spec, describe, it)
+import Test.Spec.Assertions (shouldEqual)
 import Yoga.Fetch.Om.SplitParams (splitParams)
-import ViTest (ViTest, describe, test)
-import ViTest.Expect (expectToBe)
 
-expectToEqual :: forall a. Eq a => a -> a -> Aff Unit
-expectToEqual expected actual = expectToBe true (expected == actual)
-
---------------------------------------------------------------------------------
--- SplitParams Tests
---------------------------------------------------------------------------------
-
-testSplitParams :: Effect ViTest
-testSplitParams = describe "splitParams" $ do
-  _ <- test "splits path and query params" do
+spec :: Spec Unit
+spec = describe "splitParams" do
+  it "splits path and query params" do
     let
       allParams = { id: 42, limit: 10, offset: 20 }
       result =
@@ -26,12 +17,12 @@ testSplitParams = describe "splitParams" $ do
              , query :: { limit :: Int, offset :: Int }
              , body :: {}
              }
-    expectToEqual 42 result.path.id
-    expectToEqual 10 result.query.limit
-    expectToEqual 20 result.query.offset
-    expectToEqual {} result.body
+    result.path.id `shouldEqual` 42
+    result.query.limit `shouldEqual` 10
+    result.query.offset `shouldEqual` 20
+    result.body `shouldEqual` {}
 
-  _ <- test "splits path and body params" do
+  it "splits path and body params" do
     let
       allParams = { id: 42, name: "Alice", email: "alice@example.com" }
       result =
@@ -40,12 +31,12 @@ testSplitParams = describe "splitParams" $ do
              , query :: {}
              , body :: { name :: String, email :: String }
              }
-    expectToEqual 42 result.path.id
-    expectToEqual {} result.query
-    expectToEqual "Alice" result.body.name
-    expectToEqual "alice@example.com" result.body.email
+    result.path.id `shouldEqual` 42
+    result.query `shouldEqual` {}
+    result.body.name `shouldEqual` "Alice"
+    result.body.email `shouldEqual` "alice@example.com"
 
-  _ <- test "splits all three param types" do
+  it "splits all three param types" do
     let
       allParams =
         { id: 42
@@ -58,11 +49,11 @@ testSplitParams = describe "splitParams" $ do
              , query :: { limit :: Int }
              , body :: { name :: String }
              }
-    expectToEqual 42 result.path.id
-    expectToEqual 10 result.query.limit
-    expectToEqual "Bob" result.body.name
+    result.path.id `shouldEqual` 42
+    result.query.limit `shouldEqual` 10
+    result.body.name `shouldEqual` "Bob"
 
-  test "handles empty splits" do
+  it "handles empty splits" do
     let
       allParams = { id: 42 }
       result =
@@ -71,6 +62,6 @@ testSplitParams = describe "splitParams" $ do
              , query :: {}
              , body :: {}
              }
-    expectToEqual 42 result.path.id
-    expectToEqual {} result.query
-    expectToEqual {} result.body
+    result.path.id `shouldEqual` 42
+    result.query `shouldEqual` {}
+    result.body `shouldEqual` {}
