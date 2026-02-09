@@ -1,9 +1,16 @@
-import { listen, close } from "./test-server.js";
+import {
+  mkServer,
+  listenServer,
+  closeServer,
+} from "../output/TestServer/index.js";
+
+let fastify;
 
 export async function setup() {
-  await listen();
+  fastify = mkServer();
+  await listenServer(fastify)();
 }
 
 export async function teardown() {
-  await close();
+  await closeServer(fastify)();
 }

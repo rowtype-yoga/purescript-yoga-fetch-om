@@ -1,4 +1,15 @@
-workspace: {}
+workspace:
+  packageSet:
+    registry: 73.0.0
+  extraPackages:
+    yoga-fastify-om: "0.1.0"
+    yoga-fastify: "0.2.3"
+    yoga-http-api: "0.1.4"
+    yoga-om: "1.2.2"
+    yoga-om-layer: "1.0.6"
+    yoga-om-strom: "0.2.0"
+    yoga-options: "0.1.0"
+    yoga-json: "5.2.0"
 
 package:
   name: yoga-fetch-om
@@ -15,7 +26,7 @@ package:
     exclude:
       - .github
   dependencies:
-    - aff: ">=8.0.0 <9.0.0"
+    - aff: ">=7.0.0 <9.0.0"
     - arrays: ">=7.3.0 <8.0.0"
     - effect: ">=4.0.0 <5.0.0"
     - either: ">=6.1.0 <7.0.0"
@@ -34,9 +45,11 @@ package:
     - variant: ">=8.0.0 <9.0.0"
     - yoga-http-api: ">=0.1.0 <0.2.0"
     - yoga-json: ">=5.2.0 <6.0.0"
-    - yoga-om: ">=0.1.0 <0.2.0"
+    - yoga-om: ">=1.2.2 <2.0.0"
   test:
     main: Test.Main
     dependencies:
-      - vitest: ">=1.0.0 <2.0.0"
+      - vitest: ">=1.0.0 <3.0.0"
       - console: ">=6.0.0 <7.0.0"
+      - yoga-fastify-om: ">=0.1.0 <0.2.0"
+      - refs: ">=6.0.0 <7.0.0"
