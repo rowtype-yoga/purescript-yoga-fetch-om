@@ -4,13 +4,13 @@ workspace:
   extraPackages:
     yoga-fastify-om:
       path: ../purescript-yoga-fastify-om
-    yoga-fastify: ">=0.2.3 <0.3.0"
-    yoga-http-api: ">=0.1.6 <0.2.0"
-    yoga-om: ">=1.2.2 <2.0.0"
-    yoga-om-layer: ">=1.0.6 <2.0.0"
-    yoga-om-strom: ">=0.2.0 <0.3.0"
-    yoga-options: ">=0.1.0 <0.2.0"
-    yoga-json: ">=5.2.0 <6.0.0"
+    yoga-fastify: "0.2.3"
+    yoga-http-api: "0.1.6"
+    yoga-om: "1.2.2"
+    yoga-om-layer: "1.0.6"
+    yoga-om-strom: "0.2.0"
+    yoga-options: "0.1.0"
+    yoga-json: "5.2.0"
 
 package:
   name: yoga-fetch-om
