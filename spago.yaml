@@ -5,8 +5,7 @@ workspace:
     yoga-fastify-om:
       path: ../purescript-yoga-fastify-om
     yoga-fastify: "0.2.3"
-    yoga-http-api:
-      path: ../purescript-yoga-http-api
+    yoga-http-api: "0.1.6"
     yoga-om: "1.2.2"
     yoga-om-layer: "1.0.6"
     yoga-om-strom: "0.2.0"
@@ -16,7 +15,7 @@ workspace:
 package:
   name: yoga-fetch-om
   publish:
-    version: 0.5.0
+    version: 0.5.1
     license: MIT
     location:
       githubOwner: rowtype-yoga

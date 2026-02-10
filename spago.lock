@@ -684,9 +684,7 @@
       "yoga-fastify-om": {
         "path": "../purescript-yoga-fastify-om"
       },
-      "yoga-http-api": {
-        "path": "../purescript-yoga-http-api"
-      },
+      "yoga-http-api": "0.1.6",
       "yoga-json": "5.2.0",
       "yoga-om": "1.2.2",
       "yoga-om-layer": "1.0.6",
@@ -2049,7 +2047,6 @@
         "effect",
         "either",
         "exceptions",
-        "foldable-traversable",
         "foreign",
         "foreign-object",
         "integers",
@@ -2071,8 +2068,9 @@
       ]
     },
     "yoga-http-api": {
-      "type": "local",
-      "path": "../purescript-yoga-http-api",
+      "type": "registry",
+      "version": "0.1.6",
+      "integrity": "sha256-wI2aiM7S99gq7pPCBI8ijemMNV5vqjToLHVLr9nCtog=",
       "dependencies": [
         "aff",
         "arrays",
