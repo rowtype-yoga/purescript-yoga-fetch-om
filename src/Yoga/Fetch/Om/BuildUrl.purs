@@ -46,7 +46,10 @@ instance
     pattern = pathPattern segmentsProxy
     withBase = case baseUrl of
       "" -> pattern
-      base -> base <> pattern
+      base -> dropTrailingSlash base <> pattern
+    dropTrailingSlash s = case String.stripSuffix (Pattern "/") s of
+      Just s' -> dropTrailingSlash s'
+      Nothing -> s
     withPathParams = substitutePathParamsImpl (Proxy :: _ pathParams) pathParamsRec withBase
     withQueryParams = appendQueryParamsImpl (Proxy :: _ queryParams) queryParamsRec withPathParams
 

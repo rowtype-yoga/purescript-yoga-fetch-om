@@ -4,6 +4,8 @@ module Yoga.Fetch.Om.MakeRequest
   , makeRequest
   , class SerializeBody
   , serializeBody
+  , class ContentType
+  , contentType
   ) where
 
 import Prelude
@@ -58,9 +60,10 @@ makeRequest
   => Proxy method
   -> String
   -> Headers
+  -> String
   -> Maybe String
   -> Aff FetchResponse.Response
-makeRequest proxy url customHeaders maybeBody = do
+makeRequest proxy url customHeaders defaultContentType maybeBody = do
   request <- Request.new url options # liftEffect
   Promise.toAffE $ Fetch.fetch request
   where
@@ -70,7 +73,7 @@ makeRequest proxy url customHeaders maybeBody = do
   contentTypeArr = case maybeBody of
     Nothing -> []
     Just _ | hasContentType -> []
-    Just _ -> [ "Content-Type" /\ "application/json" ]
+    Just _ -> [ "Content-Type" /\ defaultContentType ]
   allHeaders = Headers.fromFoldable (contentTypeArr <> customArr)
   body = case maybeBody of
     Nothing -> Body.empty
@@ -88,11 +91,24 @@ makeRequest proxy url customHeaders maybeBody = do
     , cache: Cache.Default
     }
 
+class ContentType :: Type -> Constraint
+class ContentType body where
+  contentType :: Proxy body -> String
+
+instance ContentType String where
+  contentType _ = "text/plain"
+else instance ContentType Unit where
+  contentType _ = "application/json"
+else instance ContentType body where
+  contentType _ = "application/json"
+
 class SerializeBody :: Type -> Constraint
 class SerializeBody body where
   serializeBody :: body -> Maybe String
 
-instance SerializeBody Unit where
+instance SerializeBody String where
+  serializeBody s = Just s
+else instance SerializeBody Unit where
   serializeBody _ = Nothing
 else instance WriteForeign body => SerializeBody body where
   serializeBody b = Just (writeJSON b)

@@ -62,7 +62,7 @@ withServer test = bracket acquire release (\_ -> test unit)
 
   release = F.close
 
-getUserHandler :: Handler GetUserRoute
+getUserHandler :: Handler GetUserRoute ()
 getUserHandler = handle do
   { path } <- ask
   respond @"ok" { id: path.id, name: "User " <> show path.id }

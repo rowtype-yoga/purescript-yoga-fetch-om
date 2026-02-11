@@ -9,7 +9,7 @@ module Yoga.Fetch.Om.ExtractParams
 import Data.Unit (Unit)
 import Prim.RowList (class RowToList, RowList)
 import Prim.RowList as RL
-import Yoga.HTTP.API.Route.Encoding (JSON, FormData, NoBody)
+import Yoga.HTTP.API.Route.Encoding (JSON, FormData, NoBody, PlainText)
 import Yoga.HTTP.API.Route.Handler (Request)
 
 class ExtractRequestBody :: Type -> Type -> Constraint
@@ -50,6 +50,7 @@ class UnwrapEncoding encoding body | encoding -> body
 instance UnwrapEncoding (JSON ty) ty
 instance UnwrapEncoding (FormData ty) ty
 instance UnwrapEncoding NoBody Unit
+instance UnwrapEncoding PlainText String
 
 class FindHeaders :: RowList Type -> Row Type -> Constraint
 class FindHeaders rl headers | rl -> headers

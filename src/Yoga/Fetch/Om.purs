@@ -12,6 +12,8 @@ module Yoga.Fetch.Om
   , toHeaders
   , module Yoga.HTTP.API.Route
   , module Yoga.HTTP.API.Path
+  , plainText
+  , module Yoga.Fetch.Om.StreamDecode
   , module Yoga.Fetch.Om.Simple
   ) where
 
@@ -30,16 +32,17 @@ import JS.Fetch.Headers as Headers
 import Type.Row.Homogeneous (class Homogeneous)
 import Yoga.Fetch.Om.BuildUrl (class BuildUrl, buildUrl)
 import Yoga.Fetch.Om.Simple (class DecodeResponse, decodeResponse, FetchError, FetchResponse, get, getWithHeaders, delete, deleteWithHeaders, delete_, post, postWithHeaders, post_, put, putWithHeaders, put_, patch, patchWithHeaders, patch_)
+import Yoga.Fetch.Om.StreamDecode (class StreamDecode, decodeStream)
 import Yoga.Fetch.Om.ClientFunction (class BuildClientFn, class CheckBodyIsUnit, buildClientFn)
 import Yoga.Fetch.Om.ExtractParams (class ExtractRequestBody, class ExtractRequestHeaders)
-import Yoga.Fetch.Om.MakeRequest (class MakeRequest, class SerializeBody, makeRequest, serializeBody)
+import Yoga.Fetch.Om.MakeRequest (class MakeRequest, class SerializeBody, class ContentType, makeRequest, serializeBody, contentType)
 import Yoga.Fetch.Om.ParseResponse (class ParseResponse, parseResponse)
 import Yoga.Fetch.Om.SplitResponses (class SplitResponses)
 import Yoga.Fetch.Om.Variant (class VariantOrValue, variantOrValue)
 import Yoga.HTTP.API.Path (Path, Root, Lit, Capture, PathCons, Param, QueryParams, Required, type (/), type (:), type (:?), class PathPattern)
-import Yoga.HTTP.API.Route (Route(..), GET, POST, PUT, DELETE, PATCH, Response(..), JSON, FormData, NoBody)
+import Yoga.HTTP.API.Route (Route(..), GET, POST, PUT, DELETE, PATCH, Response(..), JSON, FormData, PlainText, Streaming, NoBody)
 import Yoga.HTTP.API.Route.Handler (class SegmentPathParams, class SegmentQueryParams)
-import Yoga.Om (Om, fromAff)
+import Yoga.Om (class ToOm, Om, toOm)
 
 -- | Extract row type from Record type
 class RecordRow :: Type -> Row Type -> Constraint
@@ -72,6 +75,7 @@ instance
   , BuildUrl segments pathParams queryParams
   , MakeRequest method
   , SerializeBody body
+  , ContentType body
   , SplitResponses response successRow routeErrors
   , ParseResponse routeErrors successRow
   , RowToList successRow successRL
@@ -92,7 +96,7 @@ instance
     impl pathQueryRec headersRec bodyVal = do
       let url = buildUrl baseUrl (Proxy :: _ segments) pathParamsRec queryParamsRec
       let hdrs = toHeaders (Proxy :: _ headersRL) headersRec
-      fetchResp <- makeRequest (Proxy :: _ method) url hdrs (serializeBody bodyVal) # fromAff
+      fetchResp <- makeRequest (Proxy :: _ method) url hdrs (contentType (Proxy :: _ body)) (serializeBody bodyVal) # toOm
       variant <- parseResponse fetchResp :: Om (Record ()) routeErrors (Variant successRow)
       variantOrValue (Proxy :: _ successRL) variant # pure
       where
@@ -119,6 +123,9 @@ client baseUrl = polymorphic (deriveClientImpl baseUrl (Proxy :: _ { | routesRow
 -- | ```
 deriveClient :: forall @routesRow clientsRow polyClientsRow. DeriveClient routesRow clientsRow => String -> Record polyClientsRow
 deriveClient baseUrl = polymorphic (deriveClientImpl baseUrl (Proxy :: _ { | routesRow }) :: Record clientsRow)
+
+plainText :: PlainText -> String
+plainText = unsafeCoerce
 
 polymorphic :: forall a b. a -> b
 polymorphic = unsafeCoerce

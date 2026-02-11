@@ -46,7 +46,7 @@ import Type.Row.Homogeneous (class Homogeneous)
 -- PlainText removed, using local phantom type
 import Yoga.JSON (class ReadForeign, class WriteForeign, readJSON, writeJSON)
 import Yoga.JSON.Error (withStringErrors)
-import Yoga.Om (Om, fromAff, throw)
+import Yoga.Om (class ToOm, Om, toOm, throw)
 
 type FetchError = { status :: Int, body :: String }
 
@@ -74,8 +74,8 @@ simpleFetch
   -> Maybe String
   -> Om ctx (fetchError :: FetchError | err) (FetchResponse result)
 simpleFetch method headers url maybeBody = do
-  resp <- doFetch # fromAff
-  respText <- Promise.toAffE (Resp.text resp) # fromAff
+  resp <- doFetch # toOm
+  respText <- Promise.toAffE (Resp.text resp) # toOm
   let status = Resp.status resp
   let respHeaders = Resp.headers resp
   if status >= 200 && status < 300 then
