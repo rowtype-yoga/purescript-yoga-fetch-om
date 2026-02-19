@@ -71,92 +71,6 @@
             {
               "yoga-om-strom": ">=0.2.0 <0.5.0"
             }
-          ],
-          "build_plan": [
-            "aff",
-            "aff-retry",
-            "ansi",
-            "arraybuffer-types",
-            "arrays",
-            "avar",
-            "bifunctors",
-            "catenable-lists",
-            "console",
-            "const",
-            "contravariant",
-            "control",
-            "datetime",
-            "distributive",
-            "effect",
-            "either",
-            "enums",
-            "exceptions",
-            "exists",
-            "foldable-traversable",
-            "foreign",
-            "foreign-object",
-            "fork",
-            "free",
-            "functions",
-            "functors",
-            "gen",
-            "heterogeneous",
-            "http-methods",
-            "identity",
-            "integers",
-            "invariant",
-            "js-bigints",
-            "js-date",
-            "js-fetch",
-            "js-promise",
-            "js-promise-aff",
-            "lazy",
-            "lists",
-            "literals",
-            "maybe",
-            "media-types",
-            "mmorph",
-            "newtype",
-            "nonempty",
-            "now",
-            "nullable",
-            "numbers",
-            "ordered-collections",
-            "orders",
-            "parallel",
-            "partial",
-            "pipes",
-            "prelude",
-            "profunctor",
-            "random",
-            "record",
-            "record-studio",
-            "ref-lifted",
-            "refs",
-            "safe-coerce",
-            "spec",
-            "st",
-            "strings",
-            "tailrec",
-            "transformers",
-            "tuples",
-            "type-equality",
-            "typelevel-prelude",
-            "uncurried-transformers",
-            "undefined-is-not-a-problem",
-            "unfoldable",
-            "unsafe-coerce",
-            "untagged-union",
-            "variant",
-            "web-events",
-            "web-file",
-            "web-streams",
-            "yoga-http-api",
-            "yoga-json",
-            "yoga-om",
-            "yoga-om-strom",
-            "yoga-options",
-            "yoga-tree"
           ]
         },
         "test": {
@@ -176,112 +90,13 @@
             {
               "yoga-fastify-om": ">=0.1.0 <0.4.0"
             }
-          ],
-          "build_plan": [
-            "aff",
-            "aff-retry",
-            "ansi",
-            "argonaut-codecs",
-            "argonaut-core",
-            "arraybuffer-types",
-            "arrays",
-            "avar",
-            "bifunctors",
-            "catenable-lists",
-            "console",
-            "const",
-            "contravariant",
-            "control",
-            "datetime",
-            "distributive",
-            "effect",
-            "either",
-            "enums",
-            "exceptions",
-            "exists",
-            "exitcodes",
-            "foldable-traversable",
-            "foreign",
-            "foreign-object",
-            "fork",
-            "free",
-            "functions",
-            "functors",
-            "gen",
-            "heterogeneous",
-            "identity",
-            "integers",
-            "invariant",
-            "js-bigints",
-            "js-date",
-            "js-promise",
-            "js-promise-aff",
-            "js-uri",
-            "lazy",
-            "lists",
-            "literals",
-            "maybe",
-            "mmorph",
-            "newtype",
-            "node-buffer",
-            "node-event-emitter",
-            "node-fs",
-            "node-path",
-            "node-process",
-            "node-streams",
-            "nonempty",
-            "now",
-            "nullable",
-            "numbers",
-            "open-memoize",
-            "optparse",
-            "ordered-collections",
-            "orders",
-            "parallel",
-            "partial",
-            "pipes",
-            "posix-types",
-            "prelude",
-            "profunctor",
-            "random",
-            "record",
-            "record-studio",
-            "ref-lifted",
-            "refs",
-            "routing-duplex",
-            "safe-coerce",
-            "spec",
-            "spec-discovery",
-            "spec-node",
-            "st",
-            "strings",
-            "tailrec",
-            "transformers",
-            "tuples",
-            "type-equality",
-            "typelevel-prelude",
-            "uncurried-transformers",
-            "undefined-is-not-a-problem",
-            "unfoldable",
-            "unsafe-coerce",
-            "untagged-union",
-            "variant",
-            "yoga-fastify",
-            "yoga-fastify-om",
-            "yoga-http-api",
-            "yoga-json",
-            "yoga-om",
-            "yoga-om-layer",
-            "yoga-om-strom",
-            "yoga-options",
-            "yoga-tree"
           ]
         }
       }
     },
     "package_set": {
       "address": {
-        "registry": "73.0.0"
+        "registry": "73.2.0"
       },
       "compiler": ">=0.15.15 <0.16.0",
       "content": {
@@ -620,7 +435,7 @@
         "options": "7.0.0",
         "optparse": "5.0.1",
         "ordered-collections": "3.2.0",
-        "ordered-set": "0.4.0",
+        "ordered-set": "0.5.0",
         "orders": "6.0.0",
         "org-doc": "0.1.0",
         "owoify": "1.2.0",
@@ -711,6 +526,7 @@
         "selective-functors": "1.0.1",
         "semirings": "7.0.0",
         "shuffle": "2.0.0",
+        "sigil": "0.2.0",
         "signal": "13.0.0",
         "simple-emitter": "3.0.1",
         "simple-i18n": "2.0.1",
@@ -725,7 +541,7 @@
         "sparse-matrices": "2.0.1",
         "sparse-polynomials": "3.0.1",
         "spec": "8.1.1",
-        "spec-discovery": "8.4.0",
+        "spec-discovery": "8.4.1",
         "spec-mocha": "5.1.1",
         "spec-node": "0.0.3",
         "spec-quickcheck": "5.0.2",
@@ -871,28 +687,14 @@
       }
     },
     "extra_packages": {
-      "ref-lifted": {
-        "path": "../purescript-ref-lifted"
-      },
-      "yoga-fastify": {
-        "path": "../purescript-yoga-fastify"
-      },
-      "yoga-fastify-om": {
-        "path": "../purescript-yoga-fastify-om"
-      },
-      "yoga-http-api": {
-        "path": "../purescript-yoga-http-api"
-      },
+      "ref-lifted": "0.0.1",
+      "yoga-fastify": "0.3.0",
+      "yoga-fastify-om": "0.3.2",
+      "yoga-http-api": "0.2.0",
       "yoga-json": "5.2.0",
-      "yoga-om": {
-        "path": "../purescript-yoga-om"
-      },
-      "yoga-om-layer": {
-        "path": "../purescript-yoga-om-layer"
-      },
-      "yoga-om-strom": {
-        "path": "../purescript-yoga-om-strom"
-      },
+      "yoga-om": "1.5.1",
+      "yoga-om-layer": "1.2.1",
+      "yoga-om-strom": "0.4.1",
       "yoga-options": "0.1.0"
     }
   },
@@ -1894,15 +1696,6 @@
         "unsafe-coerce"
       ]
     },
-    "ref-lifted": {
-      "type": "local",
-      "path": "../purescript-ref-lifted",
-      "dependencies": [
-        "effect",
-        "prelude",
-        "refs"
-      ]
-    },
     "refs": {
       "type": "registry",
       "version": "6.0.0",
@@ -1977,8 +1770,8 @@
     },
     "spec-discovery": {
       "type": "registry",
-      "version": "8.4.0",
-      "integrity": "sha256-aFp8bllT/wrxQu8hMlDchQQY08dQAz+Xdq2hZi5z3yY=",
+      "version": "8.4.1",
+      "integrity": "sha256-guvY+NtSOBQmM+HqNJ7woX6taN8hS1wEz7JDmdKF11E=",
       "dependencies": [
         "aff",
         "effect",
@@ -2255,8 +2048,9 @@
       ]
     },
     "yoga-fastify": {
-      "type": "local",
-      "path": "../purescript-yoga-fastify",
+      "type": "registry",
+      "version": "0.3.0",
+      "integrity": "sha256-nQZq9ZSVFPSXFzLtC32iz4RRT0JgigFLKlAe1PGB+Lo=",
       "dependencies": [
         "aff",
         "arrays",
@@ -2281,8 +2075,9 @@
       ]
     },
     "yoga-fastify-om": {
-      "type": "local",
-      "path": "../purescript-yoga-fastify-om",
+      "type": "registry",
+      "version": "0.3.2",
+      "integrity": "sha256-otv4BiPNnw/YQIgfpAWYgcgjUJYkkL4GUGV34Muni/0=",
       "dependencies": [
         "aff",
         "console",
@@ -2296,7 +2091,6 @@
         "node-buffer",
         "prelude",
         "record",
-        "ref-lifted",
         "refs",
         "routing-duplex",
         "transformers",
@@ -2311,8 +2105,9 @@
       ]
     },
     "yoga-http-api": {
-      "type": "local",
-      "path": "../purescript-yoga-http-api",
+      "type": "registry",
+      "version": "0.2.0",
+      "integrity": "sha256-zcQusL24+05UYAb2DuSBgL6nHeivVUOKOAWl5ZZWK/w=",
       "dependencies": [
         "aff",
         "arrays",
@@ -2375,8 +2170,9 @@
       ]
     },
     "yoga-om": {
-      "type": "local",
-      "path": "../purescript-yoga-om",
+      "type": "registry",
+      "version": "1.5.1",
+      "integrity": "sha256-Fx9Or+0JO7uOYcjbKX0LeY+9fuIxYilZTMd4Q1eje0k=",
       "dependencies": [
         "aff",
         "aff-retry",
@@ -2388,13 +2184,13 @@
         "either",
         "exceptions",
         "functions",
+        "heterogeneous",
         "maybe",
         "newtype",
         "parallel",
         "prelude",
         "record",
         "record-studio",
-        "ref-lifted",
         "refs",
         "tailrec",
         "transformers",
@@ -2406,8 +2202,9 @@
       ]
     },
     "yoga-om-layer": {
-      "type": "local",
-      "path": "../purescript-yoga-om-layer",
+      "type": "registry",
+      "version": "1.2.1",
+      "integrity": "sha256-7IdanBqLbr+2chIVvnxWG/QidA4cVMVIydGv+lIXU+I=",
       "dependencies": [
         "aff",
         "aff-retry",
@@ -2422,7 +2219,6 @@
         "prelude",
         "record",
         "record-studio",
-        "ref-lifted",
         "refs",
         "transformers",
         "type-equality",
@@ -2433,8 +2229,9 @@
       ]
     },
     "yoga-om-strom": {
-      "type": "local",
-      "path": "../purescript-yoga-om-strom",
+      "type": "registry",
+      "version": "0.4.1",
+      "integrity": "sha256-IIfjEQY7g6/4BjPkCj2yvhXPL8mmAfiJykZy3A+iGnI=",
       "dependencies": [
         "aff",
         "arrays",
@@ -2452,7 +2249,6 @@
         "maybe",
         "now",
         "prelude",
-        "ref-lifted",
         "refs",
         "spec",
         "st",
