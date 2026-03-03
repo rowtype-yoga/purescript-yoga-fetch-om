@@ -1,21 +1,8 @@
-workspace:
-  packageSet:
-    registry: 73.2.0
-  extraPackages:
-    yoga-fastify-om: "0.3.2"
-    yoga-fastify: "0.3.0"
-    yoga-http-api: "0.2.0"
-    yoga-om: "1.5.1"
-    yoga-om-layer: "1.2.1"
-    yoga-om-strom: "0.4.1"
-    yoga-options: "0.1.0"
-    yoga-json: "5.2.0"
-    ref-lifted: "0.0.1"
-
+workspace: {}
 package:
   name: yoga-fetch-om
   publish:
-    version: 0.6.1
+    version: 0.6.2
     license: MIT
     location:
       githubOwner: rowtype-yoga
