@@ -196,3 +196,4 @@ MIT
 - [purescript-yoga-fastify-om](https://github.com/rowtype-yoga/purescript-yoga-fastify-om) - Server-side counterpart
 - [purescript-yoga-json](https://github.com/rowtype-yoga/purescript-yoga-json) - JSON serialization
 - [purescript-yoga-om](https://github.com/rowtype-yoga/purescript-yoga-om) - Om monad
+
