@@ -13,7 +13,6 @@ module Yoga.Fetch.Om
   , module Yoga.HTTP.API.Route
   , module Yoga.HTTP.API.Path
   , plainText
-  , opt
   , module Yoga.Fetch.Om.StreamDecode
   , module Yoga.Fetch.Om.Simple
   ) where
@@ -35,7 +34,7 @@ import Yoga.Fetch.Om.BuildUrl (class BuildUrl, buildUrl)
 import Yoga.Fetch.Om.Simple (class DecodeResponse, decodeResponse, FetchError, FetchResponse, get, getWithHeaders, delete, deleteWithHeaders, delete_, post, postWithHeaders, post_, put, putWithHeaders, put_, patch, patchWithHeaders, patch_)
 import Yoga.Fetch.Om.StreamDecode (class StreamDecode, decodeStream)
 import Yoga.Fetch.Om.ClientFunction (class BuildClientFn, class CheckBodyIsUnit, buildClientFn)
-import Yoga.Fetch.Om.QueryDefaults (class BuildQueryFromPartial, buildQueryFromPartial)
+import Yoga.Fetch.Om.ReadOptional (class ReadPartialQuery, readPartialQuery)
 import Yoga.Fetch.Om.ExtractParams (class ExtractRequestBody, class ExtractBodyEncoding, class ExtractRequestHeaders)
 import Yoga.Fetch.Om.MakeRequest (class MakeRequest, class BodyEncoding, makeRequest, encodingContentType, encodeBody)
 import Yoga.Fetch.Om.ParseResponse (class ParseResponse, parseResponse)
@@ -74,11 +73,11 @@ else instance
     rest = toHeaders (Proxy :: Proxy tail) (unsafeCoerce headers :: Record tailRow)
 
 class DeriveClientFn
-  :: forall k1. Type -> k1 -> Type -> Row Type -> Row Type -> Row Type -> Row Type -> Type -> Type -> Constraint
+  :: forall k1. Type -> k1 -> Type -> Row Type -> Row Type -> Row Type -> Row Type -> Row Type -> Type -> Type -> Constraint
 class
-  DeriveClientFn method segments request response ctx extraErr routeErrors result fn
+  DeriveClientFn method segments request response ctx extraErr given routeErrors result fn
   | method segments request response -> routeErrors result
-  , method segments request response ctx extraErr -> fn where
+  , method segments request response ctx extraErr given -> fn where
   deriveClientFn :: String -> Proxy (Route method segments request response) -> fn
 
 instance
@@ -98,18 +97,23 @@ instance
   , Row.Union pathParams queryParams pathQuery
   , Row.Nub pathQuery pathQuery
   , RowToList pathQuery pathQueryRL
+  , RowToList queryParams queryParamsRL
+  , ReadPartialQuery queryParamsRL queryParams
   , RowToList headers headersRL
   , ToHeaders headersRL headers
   , CheckBodyIsUnit body bodyFlag
   , Row.Union routeErrors extraErr errRow
-  , BuildClientFn pathQueryRL headersRL bodyFlag body pathQuery headers { | ctx } errRow result fn
+  , BuildClientFn pathQueryRL headersRL bodyFlag body pathQuery headers given { | ctx } errRow result fn
   ) =>
-  DeriveClientFn method segments request response ctx extraErr routeErrors result fn where
+  DeriveClientFn method segments request response ctx extraErr given routeErrors result fn where
   deriveClientFn baseUrl _ =
-    buildClientFn (Proxy :: _ pathQueryRL) (Proxy :: _ headersRL) (Proxy :: _ bodyFlag) impl
+    buildClientFn (Proxy :: _ pathQueryRL) (Proxy :: _ headersRL) (Proxy :: _ bodyFlag) convert impl
     where
+    convert :: Record given -> Record pathQuery
+    convert = unsafeCoerce
     impl :: Record pathQuery -> Record headers -> body -> Om { | ctx } errRow result
     impl pathQueryRec headersRec bodyVal = widenOm do
+      let queryParamsRec = readPartialQuery @queryParamsRL pathQueryRec
       let url = buildUrl baseUrl (Proxy :: _ segments) pathParamsRec queryParamsRec
       let hdrs = toHeaders (Proxy :: _ headersRL) headersRec
       let ct = encodingContentType (Proxy :: _ encoding)
@@ -118,7 +122,6 @@ instance
       variantOrValue (Proxy :: _ successRL) variant # pure
       where
       pathParamsRec = unsafeCoerce pathQueryRec :: Record pathParams
-      queryParamsRec = unsafeCoerce pathQueryRec :: Record queryParams
       widenOm :: Om (Record ()) routeErrors ~> Om { | ctx } errRow
       widenOm = unsafeCoerce
 
@@ -146,15 +149,6 @@ deriveClient baseUrl = deriveClientImpl @ctx @extraErr baseUrl (Proxy :: _ { | r
 plainText :: PlainText -> String
 plainText = unsafeCoerce
 
--- | Convert a partial record to a full query params record.
--- | Provided fields get `Just`, missing fields get `Nothing`.
--- |
--- | ```purescript
--- | api.listUsers $ opt { limit: 10 }
--- | -- instead of: api.listUsers { limit: Just 10, offset: Nothing }
--- | ```
-opt :: forall @queryParams provided. BuildQueryFromPartial queryParams provided => Record provided -> Record queryParams
-opt = buildQueryFromPartial
 
 instance
   ( RowToList routesRow rl
@@ -172,7 +166,7 @@ instance DeriveClientRL ctx extraErr RL.Nil acc acc where
 
 instance
   ( IsSymbol label
-  , DeriveClientFn method segments request response ctx extraErr routeErrors result fn
+  , DeriveClientFn method segments request response ctx extraErr given routeErrors result fn
   , DeriveClientRL ctx extraErr tail acc1 acc2
   , Row.Cons label fn acc2 out
   , Row.Lacks label acc2
@@ -181,5 +175,5 @@ instance
   DeriveClientRL ctx extraErr (RL.Cons label (Route method segments request response) tail) acc1 out where
   deriveClientRL baseUrl _ acc = Record.insert (Proxy :: _ label) clientFn rest
     where
-    clientFn = deriveClientFn @_ @_ @_ @_ @ctx @extraErr baseUrl (Proxy :: _ (Route method segments request response))
+    clientFn = deriveClientFn @_ @_ @_ @_ @ctx @extraErr @given baseUrl (Proxy :: _ (Route method segments request response))
     rest = deriveClientRL @ctx @extraErr baseUrl (Proxy :: _ tail) acc

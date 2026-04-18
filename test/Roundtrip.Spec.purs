@@ -12,7 +12,7 @@ import Yoga.Fastify.Fastify as F
 import Yoga.Fastify.Fastify (Port(..), Host(..))
 import Yoga.Fastify.Om.API (registerAPI)
 import Yoga.Fastify.Om.Route (Handler, handle, respond, reject, BearerToken(..))
-import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Route, JSON, type (/), type (:), type (:?), client, opt)
+import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Route, JSON, type (/), type (:), type (:?), client)
 import Yoga.Om (Om, ask, handleErrors, runOm)
 
 -- Types
@@ -168,12 +168,12 @@ spec = around withServer $ describe "server ↔ client roundtrip" do
   describe "GET with query params" do
     it "passes query params correctly" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        users <- api.listUsers { limit: Just 1, offset: Nothing }
+        users <- api.listUsers { limit: 1 }
         liftAff $ (map _.name users) `shouldEqual` ["Alice"]
 
     it "handles no query params" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        users <- api.listUsers { limit: Nothing, offset: Nothing }
+        users <- api.listUsers {}
         liftAff $ (map _.name users) `shouldEqual` ["Alice", "Bob", "Charlie"]
 
   describe "POST with JSON body" do
@@ -230,37 +230,37 @@ spec = around withServer $ describe "server ↔ client roundtrip" do
   describe "GET with Boolean and Number query params" do
     it "passes Boolean and Number query params" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        result <- api.search { active: Just true, minScore: Just 3.14 }
+        result <- api.search { active: true, minScore: 3.14 }
         liftAff do
           result.active `shouldEqual` true
           result.minScore `shouldEqual` 3.14
 
-    it "handles Nothing for optional Boolean/Number" \_ ->
+    it "handles missing optional query params" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        result <- api.search { active: Nothing, minScore: Nothing }
+        result <- api.search {}
         liftAff do
           result.active `shouldEqual` false
           result.minScore `shouldEqual` 0.0
 
-  describe "opt helper for partial query params" do
-    it "passes subset of query params via opt" \_ ->
+  describe "partial query params — no wrapper needed" do
+    it "passes subset of query params directly" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        users <- api.listUsers $ opt { limit: 1 }
+        users <- api.listUsers { limit: 1 }
         liftAff $ (map _.name users) `shouldEqual` ["Alice"]
 
-    it "passes all query params via opt" \_ ->
+    it "passes all query params directly" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        users <- api.listUsers $ opt { limit: 2, offset: 0 }
+        users <- api.listUsers { limit: 2, offset: 0 }
         liftAff $ (map _.name users) `shouldEqual` ["Alice", "Bob"]
 
-    it "passes empty record via opt" \_ ->
+    it "passes empty record for all defaults" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        users <- api.listUsers $ opt {}
+        users <- api.listUsers {}
         liftAff $ (map _.name users) `shouldEqual` ["Alice", "Bob", "Charlie"]
 
-    it "passes Boolean via opt" \_ ->
+    it "passes partial Boolean query param" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        result <- api.search $ opt { active: true }
+        result <- api.search { active: true }
         liftAff do
           result.active `shouldEqual` true
           result.minScore `shouldEqual` 0.0
