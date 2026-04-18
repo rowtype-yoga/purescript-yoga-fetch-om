@@ -6,7 +6,8 @@ import Data.Array (length)
 import Data.Maybe (Maybe(..))
 import Effect.Class.Console (log)
 import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Route, JSON, Path, type (/), type (:), type (:?), client)
-import Yoga.Om (Om, handleErrors)
+import Yoga.HTTP.API.Route (BearerToken(..))
+import Yoga.Om (Om, expand, handleErrors)
 
 type User =
   { id :: Int
@@ -67,32 +68,23 @@ type UserAPI =
   , createUserAuth ::
       Route POST
         (Path "users")
-        { headers :: Record (authorization :: String), body :: JSON CreateUserRequest }
+        { headers :: Record (authorization :: BearerToken), body :: JSON CreateUserRequest }
         ( created :: { body :: User }
         , badRequest :: { body :: ErrorMessage }
         )
   }
 
--- Generated client with polymorphic type annotation
-api
-  :: forall ctx err
-   . { createUser :: CreateUserRequest -> Om ctx (badRequest :: ErrorMessage | err) User
-     , createUserAuth :: { authorization :: String } -> CreateUserRequest -> Om ctx (badRequest :: ErrorMessage | err) User
-     , deleteUser :: { id :: Int } -> Om ctx (notFound :: ErrorMessage | err) {}
-     , getUser :: { id :: Int } -> Om ctx (notFound :: ErrorMessage | err) User
-     , listUsers :: { limit :: Maybe Int, offset :: Maybe Int } -> Om ctx err (Array User)
-     , updateUser :: { id :: Int } -> UpdateUserRequest -> Om ctx (badRequest :: ErrorMessage, notFound :: ErrorMessage | err) User
-     }
 api = client @UserAPI "https://api.example.com"
 
 exampleGetUser :: Om {} (notFound :: ErrorMessage) Unit
 exampleGetUser = do
-  user <- api.getUser { id: 42 }
+  user <- api.getUser { id: 42 } # expand
   log $ "Found user: " <> user.name <> " (" <> user.email <> ")"
 
 exampleGetUserHandled :: Om {} () Unit
 exampleGetUserHandled = do
   user <- api.getUser { id: 42 }
+    # expand
     # handleErrors
         { notFound: \err -> do
             log $ "User not found: " <> err.error
@@ -102,7 +94,7 @@ exampleGetUserHandled = do
 
 exampleListUsers :: Om {} () Unit
 exampleListUsers = do
-  users <- api.listUsers { limit: Just 10, offset: Just 0 }
+  users <- api.listUsers { limit: Just 10, offset: Just 0 } # expand
   log $ "Found " <> show (length users) <> " users"
 
 exampleCreateUser :: Om {} (badRequest :: ErrorMessage) Unit
@@ -111,6 +103,7 @@ exampleCreateUser = do
     { name: "Alice"
     , email: "alice@example.com"
     }
+    # expand
   log $ "Created user with ID: " <> show user.id
 
 exampleUpdateUser :: Om {} (notFound :: ErrorMessage, badRequest :: ErrorMessage) Unit
@@ -119,17 +112,19 @@ exampleUpdateUser = do
     { name: "Alice Updated"
     , email: "alice.new@example.com"
     }
+    # expand
   log $ "Updated user: " <> user.name
 
 exampleDeleteUser :: Om {} (notFound :: ErrorMessage) Unit
 exampleDeleteUser = do
-  _ <- api.deleteUser { id: 42 }
+  _ <- api.deleteUser { id: 42 } # expand
   log "User deleted successfully"
 
 exampleCreateUserAuth :: Om {} (badRequest :: ErrorMessage) Unit
 exampleCreateUserAuth = do
-  user <- api.createUserAuth { authorization: "Bearer abc123" }
+  user <- api.createUserAuth { authorization: BearerToken "abc123" }
     { name: "Alice"
     , email: "alice@example.com"
     }
+    # expand
   log $ "Created user with ID: " <> show user.id

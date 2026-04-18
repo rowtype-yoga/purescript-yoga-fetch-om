@@ -102,13 +102,7 @@ simpleFetch method headers url maybeBody = do
     { method
     , headers: allHeaders
     , body: reqBody
-    , credentials: Credentials.SameOrigin
-    , mode: Mode.Cors
-    , referrer: Referrer.ReferrerNone
-    , referrerPolicy: ReferrerPolicy.NoReferrer
-    , integrity: Integrity ""
     , duplex: Duplex.Half
-    , cache: Cache.Default
     }
 
 get

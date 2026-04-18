@@ -1,6 +1,6 @@
 module Example where
 
-import Yoga.HTTP.API.Route (GET, POST, DELETE, Route)
+import Yoga.HTTP.API.Route (GET, POST, DELETE, Route, BearerToken)
 import Yoga.HTTP.API.Route.Encoding (JSON)
 import Yoga.HTTP.API.Path (Path, type (/), type (:), type (:?))
 
@@ -39,7 +39,7 @@ type UserAPI =
   , createUserAuth ::
       Route POST
         (Path "users")
-        { headers :: Record (authorization :: String), body :: JSON CreateUserRequest }
+        { headers :: Record (authorization :: BearerToken), body :: JSON CreateUserRequest }
         ( created :: { body :: User }
         , badRequest :: { body :: ErrorMessage }
         )

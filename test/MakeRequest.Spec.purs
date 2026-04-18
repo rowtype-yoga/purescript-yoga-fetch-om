@@ -11,6 +11,7 @@ import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
 import Type.Proxy (Proxy(..))
 import Yoga.Fetch.Om (toHeaders)
 import Yoga.Fetch.Om.MakeRequest (httpMethod)
+import Yoga.HTTP.API.Route (BearerToken(..))
 import Yoga.HTTP.API.Route.Method as Route
 
 spec :: Spec Unit
@@ -37,3 +38,7 @@ spec = do
       arr `shouldSatisfy` \a ->
         a == [ "authorization" /\ "Bearer abc123", "x-custom" /\ "value" ]
           || a == [ "x-custom" /\ "value", "authorization" /\ "Bearer abc123" ]
+
+    it "typed header values are rendered with HeaderValue" do
+      let hdrs = toHeaders (Proxy :: _ (RL.Cons "authorization" BearerToken RL.Nil)) { authorization: BearerToken "abc123" }
+      Headers.toArray hdrs `shouldEqual` [ "authorization" /\ "Bearer abc123" ]

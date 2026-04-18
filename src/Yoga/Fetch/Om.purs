@@ -19,7 +19,8 @@ module Yoga.Fetch.Om
 
 import Prelude
 
-import Data.Symbol (class IsSymbol)
+import Data.Symbol (class IsSymbol, reflectSymbol)
+import Data.Tuple.Nested ((/\))
 import Data.Variant (Variant)
 import Prim.Row as Row
 import Prim.RowList (class RowToList, RowList)
@@ -29,7 +30,6 @@ import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 import JS.Fetch.Headers (Headers)
 import JS.Fetch.Headers as Headers
-import Type.Row.Homogeneous (class Homogeneous)
 import Yoga.Fetch.Om.BuildUrl (class BuildUrl, buildUrl)
 import Yoga.Fetch.Om.Simple (class DecodeResponse, decodeResponse, FetchError, FetchResponse, get, getWithHeaders, delete, deleteWithHeaders, delete_, post, postWithHeaders, post_, put, putWithHeaders, put_, patch, patchWithHeaders, patch_)
 import Yoga.Fetch.Om.StreamDecode (class StreamDecode, decodeStream)
@@ -40,7 +40,7 @@ import Yoga.Fetch.Om.ParseResponse (class ParseResponse, parseResponse)
 import Yoga.Fetch.Om.SplitResponses (class SplitResponses)
 import Yoga.Fetch.Om.Variant (class VariantOrValue, variantOrValue)
 import Yoga.HTTP.API.Path (Path, Root, Lit, Capture, PathCons, Param, QueryParams, Required, type (/), type (:), type (:?), class PathPattern)
-import Yoga.HTTP.API.Route (Route(..), GET, POST, PUT, DELETE, PATCH, Response(..), JSON, FormData, PlainText, Streaming, NoBody)
+import Yoga.HTTP.API.Route (Route(..), GET, POST, PUT, DELETE, PATCH, Response(..), JSON, FormData, PlainText, Streaming, NoBody, class HeaderValue, printHeader)
 import Yoga.HTTP.API.Route.Handler (class SegmentPathParams, class SegmentQueryParams)
 import Yoga.Om (class ToOm, Om, toOm)
 
@@ -57,8 +57,19 @@ class ToHeaders headersRL headers where
 instance ToHeaders RL.Nil headers where
   toHeaders _ _ = Headers.empty
 
-else instance Homogeneous headers String => ToHeaders headersRL headers where
-  toHeaders _ = Headers.fromRecord
+else instance
+  ( IsSymbol name
+  , HeaderValue ty
+  , Row.Cons name ty tailRow headers
+  , Row.Lacks name tailRow
+  , ToHeaders tail tailRow
+  ) =>
+  ToHeaders (RL.Cons name ty tail) headers where
+  toHeaders _ headers = Headers.fromFoldable ([ headerName /\ headerValue ] <> Headers.toArray rest)
+    where
+    headerName = reflectSymbol (Proxy :: Proxy name)
+    headerValue = printHeader (Record.get (Proxy :: Proxy name) headers)
+    rest = toHeaders (Proxy :: Proxy tail) (unsafeCoerce headers :: Record tailRow)
 
 class DeriveClientFn :: forall k1. Type -> k1 -> Type -> Row Type -> Row Type -> Row Type -> Type -> Type -> Constraint
 class
@@ -114,22 +125,19 @@ class DeriveClient routesRow clientsRow | routesRow -> clientsRow where
 -- | type UserAPI = { getUser :: Route ... }
 -- | api = client @UserAPI "https://api.example.com"
 -- | ```
-client :: forall @routes routesRow clientsRow polyClientsRow. RecordRow routes routesRow => DeriveClient routesRow clientsRow => String -> Record polyClientsRow
-client baseUrl = polymorphic (deriveClientImpl baseUrl (Proxy :: _ { | routesRow }) :: Record clientsRow)
+client :: forall @routes routesRow clientsRow. RecordRow routes routesRow => DeriveClient routesRow clientsRow => String -> Record clientsRow
+client baseUrl = deriveClientImpl baseUrl (Proxy :: _ { | routesRow })
 
 -- | Deprecated: Use `client` with VTA instead
 -- |
 -- | ```purescript
 -- | api = deriveClient @UserAPI "https://api.example.com"
 -- | ```
-deriveClient :: forall @routesRow clientsRow polyClientsRow. DeriveClient routesRow clientsRow => String -> Record polyClientsRow
-deriveClient baseUrl = polymorphic (deriveClientImpl baseUrl (Proxy :: _ { | routesRow }) :: Record clientsRow)
+deriveClient :: forall @routesRow clientsRow. DeriveClient routesRow clientsRow => String -> Record clientsRow
+deriveClient baseUrl = deriveClientImpl baseUrl (Proxy :: _ { | routesRow })
 
 plainText :: PlainText -> String
 plainText = unsafeCoerce
-
-polymorphic :: forall a b. a -> b
-polymorphic = unsafeCoerce
 
 instance
   ( RowToList routesRow rl
