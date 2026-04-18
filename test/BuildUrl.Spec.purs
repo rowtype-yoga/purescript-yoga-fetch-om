@@ -2,10 +2,11 @@ module BuildUrl.Spec where
 
 import Prelude
 
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
+import Unsafe.Coerce (unsafeCoerce)
 import Yoga.Fetch.Om.BuildUrl (buildUrl, substitutePathParams, appendQueryParams)
 import Yoga.HTTP.API.Path (Path, type (/), type (:))
 
@@ -50,24 +51,24 @@ spec = do
           "/users"
       result `shouldEqual` "/users?limit=10&offset=20"
 
-    it "handles Maybe params - Just" do
+    it "handles optional params - provided via partial record" do
       let
         result = appendQueryParams @(limit :: Maybe Int)
-          { limit: Just 10 }
+          (unsafeCoerce { limit: 10 } :: Record (limit :: Maybe Int))
           "/users"
       result `shouldEqual` "/users?limit=10"
 
-    it "handles Maybe params - Nothing" do
+    it "handles optional params - omitted via partial record" do
       let
         result = appendQueryParams @(limit :: Maybe Int)
-          { limit: Nothing }
+          (unsafeCoerce {} :: Record (limit :: Maybe Int))
           "/users"
       result `shouldEqual` "/users"
 
-    it "handles mixed Maybe and required params" do
+    it "handles mixed optional and required params" do
       let
         result = appendQueryParams @(limit :: Maybe Int, offset :: Int)
-          { limit: Nothing, offset: 20 }
+          (unsafeCoerce { offset: 20 } :: Record (limit :: Maybe Int, offset :: Int))
           "/users"
       result `shouldEqual` "/users?offset=20"
 

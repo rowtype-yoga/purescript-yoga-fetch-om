@@ -97,8 +97,6 @@ instance
   , Row.Union pathParams queryParams pathQuery
   , Row.Nub pathQuery pathQuery
   , RowToList pathQuery pathQueryRL
-  , RowToList queryParams queryParamsRL
-  , ReadPartialQuery queryParamsRL queryParams
   , RowToList headers headersRL
   , ToHeaders headersRL headers
   , CheckBodyIsUnit body bodyFlag
@@ -113,7 +111,6 @@ instance
     convert = unsafeCoerce
     impl :: Record pathQuery -> Record headers -> body -> Om { | ctx } errRow result
     impl pathQueryRec headersRec bodyVal = widenOm do
-      let queryParamsRec = readPartialQuery @queryParamsRL pathQueryRec
       let url = buildUrl baseUrl (Proxy :: _ segments) pathParamsRec queryParamsRec
       let hdrs = toHeaders (Proxy :: _ headersRL) headersRec
       let ct = encodingContentType (Proxy :: _ encoding)
@@ -122,6 +119,7 @@ instance
       variantOrValue (Proxy :: _ successRL) variant # pure
       where
       pathParamsRec = unsafeCoerce pathQueryRec :: Record pathParams
+      queryParamsRec = unsafeCoerce pathQueryRec :: Record queryParams
       widenOm :: Om (Record ()) routeErrors ~> Om { | ctx } errRow
       widenOm = unsafeCoerce
 

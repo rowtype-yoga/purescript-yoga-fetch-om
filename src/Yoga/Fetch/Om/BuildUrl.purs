@@ -28,6 +28,7 @@ import Prim.RowList as RL
 import Record as Record
 import Type.Proxy (Proxy(..))
 import Yoga.HTTP.API.Path (class PathPattern, pathPattern)
+import Yoga.Fetch.Om.ReadOptional (readOptional)
 
 foreign import encodeURIComponent_ :: String -> String
 
@@ -113,19 +114,20 @@ class AppendQueryParamsRL rl r where
 instance AppendQueryParamsRL RL.Nil r where
   appendQueryParamsRL _ _ acc = acc
 
+-- Maybe ty: read with undefined-awareness — missing field → skip
 instance
   ( IsSymbol name
   , SerializeParam ty
   , AppendQueryParamsRL tail r
-  , Row.Cons name (Maybe ty) tailRow r
   ) =>
   AppendQueryParamsRL (RL.Cons name (Maybe ty) tail) r where
   appendQueryParamsRL _ rec acc = appendQueryParamsRL (Proxy :: _ tail) rec acc'
     where
-    acc' = case Record.get (Proxy :: _ name) rec of
+    acc' = case (readOptional @name rec :: Maybe ty) of
       Nothing -> acc
       Just value -> Array.snoc acc (encodeURIComponent_ (reflectSymbol (Proxy :: _ name)) <> "=" <> encodeURIComponent_ (serializeParam value))
 
+-- bare ty (Required query param): always present
 else instance
   ( IsSymbol name
   , SerializeParam ty
