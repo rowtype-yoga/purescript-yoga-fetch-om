@@ -12,7 +12,7 @@ import Yoga.Fastify.Fastify as F
 import Yoga.Fastify.Fastify (Port(..), Host(..))
 import Yoga.Fastify.Om.API (registerAPI)
 import Yoga.Fastify.Om.Route (Handler, handle, respond, reject, BearerToken(..))
-import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Route, JSON, type (/), type (:), type (:?), client)
+import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Route, JSON, type (/), type (:), type (:?), client, opt)
 import Yoga.Om (Om, ask, handleErrors, runOm)
 
 -- Types
@@ -240,6 +240,29 @@ spec = around withServer $ describe "server ↔ client roundtrip" do
         result <- api.search { active: Nothing, minScore: Nothing }
         liftAff do
           result.active `shouldEqual` false
+          result.minScore `shouldEqual` 0.0
+
+  describe "opt helper for partial query params" do
+    it "passes subset of query params via opt" \_ ->
+      runOm {} { exception: \_ -> pure unit } do
+        users <- api.listUsers $ opt { limit: 1 }
+        liftAff $ (map _.name users) `shouldEqual` ["Alice"]
+
+    it "passes all query params via opt" \_ ->
+      runOm {} { exception: \_ -> pure unit } do
+        users <- api.listUsers $ opt { limit: 2, offset: 0 }
+        liftAff $ (map _.name users) `shouldEqual` ["Alice", "Bob"]
+
+    it "passes empty record via opt" \_ ->
+      runOm {} { exception: \_ -> pure unit } do
+        users <- api.listUsers $ opt {}
+        liftAff $ (map _.name users) `shouldEqual` ["Alice", "Bob", "Charlie"]
+
+    it "passes Boolean via opt" \_ ->
+      runOm {} { exception: \_ -> pure unit } do
+        result <- api.search $ opt { active: true }
+        liftAff do
+          result.active `shouldEqual` true
           result.minScore `shouldEqual` 0.0
 
 -- Server setup

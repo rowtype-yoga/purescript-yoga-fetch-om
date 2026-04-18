@@ -13,6 +13,7 @@ module Yoga.Fetch.Om
   , module Yoga.HTTP.API.Route
   , module Yoga.HTTP.API.Path
   , plainText
+  , opt
   , module Yoga.Fetch.Om.StreamDecode
   , module Yoga.Fetch.Om.Simple
   ) where
@@ -34,6 +35,7 @@ import Yoga.Fetch.Om.BuildUrl (class BuildUrl, buildUrl)
 import Yoga.Fetch.Om.Simple (class DecodeResponse, decodeResponse, FetchError, FetchResponse, get, getWithHeaders, delete, deleteWithHeaders, delete_, post, postWithHeaders, post_, put, putWithHeaders, put_, patch, patchWithHeaders, patch_)
 import Yoga.Fetch.Om.StreamDecode (class StreamDecode, decodeStream)
 import Yoga.Fetch.Om.ClientFunction (class BuildClientFn, class CheckBodyIsUnit, buildClientFn)
+import Yoga.Fetch.Om.QueryDefaults (class BuildQueryFromPartial, buildQueryFromPartial)
 import Yoga.Fetch.Om.ExtractParams (class ExtractRequestBody, class ExtractBodyEncoding, class ExtractRequestHeaders)
 import Yoga.Fetch.Om.MakeRequest (class MakeRequest, class BodyEncoding, makeRequest, encodingContentType, encodeBody)
 import Yoga.Fetch.Om.ParseResponse (class ParseResponse, parseResponse)
@@ -143,6 +145,16 @@ deriveClient baseUrl = deriveClientImpl @ctx @extraErr baseUrl (Proxy :: _ { | r
 
 plainText :: PlainText -> String
 plainText = unsafeCoerce
+
+-- | Convert a partial record to a full query params record.
+-- | Provided fields get `Just`, missing fields get `Nothing`.
+-- |
+-- | ```purescript
+-- | api.listUsers $ opt { limit: 10 }
+-- | -- instead of: api.listUsers { limit: Just 10, offset: Nothing }
+-- | ```
+opt :: forall @queryParams provided. BuildQueryFromPartial queryParams provided => Record provided -> Record queryParams
+opt = buildQueryFromPartial
 
 instance
   ( RowToList routesRow rl
