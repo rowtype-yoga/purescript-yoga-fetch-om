@@ -54,7 +54,7 @@ withServer test = bracket acquire release (\_ -> test unit)
   acquire = do
     fastify <- liftEffect do
       f <- F.fastify {}
-      registerAPI { getUser: getUserHandler } f
+      registerAPI @TestAPI { getUser: getUserHandler } f
       pure f
     void $ F.listen { port: Port 44931, host: Host "0.0.0.0" } fastify
     pure fastify

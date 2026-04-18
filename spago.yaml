@@ -1,4 +1,11 @@
-workspace: {}
+workspace:
+  extraPackages:
+    yoga-fastify-om:
+      path: ../purescript-yoga-fastify-om
+    yoga-http-api:
+      path: ../purescript-yoga-fastify-om/local-packages/yoga-http-api
+    yoga-fastify:
+      path: ../purescript-yoga-fastify-om/local-packages/yoga-fastify
 package:
   name: yoga-fetch-om
   publish:

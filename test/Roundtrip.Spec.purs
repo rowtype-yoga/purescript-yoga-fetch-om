@@ -63,6 +63,11 @@ type AuthRoute = Route GET
   , unauthorized :: { body :: ErrorMsg }
   )
 
+type SearchRoute = Route GET
+  ("search" :? { active :: Boolean, minScore :: Number })
+  {}
+  (ok :: { body :: { active :: Boolean, minScore :: Number } })
+
 type API =
   { getUser :: GetUserRoute
   , listUsers :: ListUsersRoute
@@ -70,6 +75,7 @@ type API =
   , updateUser :: UpdateUserRoute
   , deleteUser :: DeleteUserRoute
   , me :: AuthRoute
+  , search :: SearchRoute
   }
 
 api = client @API "http://localhost:44932"
@@ -129,6 +135,17 @@ meHandler = handle do
   case headers.authorization of
     BearerToken "secret" -> respond @"ok" { id: 1, name: "Admin", email: "admin@test.com" }
     _ -> reject @"unauthorized" { error: "Invalid token" }
+
+searchHandler :: Handler SearchRoute ()
+searchHandler = handle do
+  { query } <- ask
+  let active = case query.active of
+        Just a -> a
+        Nothing -> false
+  let minScore = case query.minScore of
+        Just s -> s
+        Nothing -> 0.0
+  respond @"ok" { active, minScore }
 
 -- Test suite
 
@@ -210,6 +227,21 @@ spec = around withServer $ describe "server ↔ client roundtrip" do
           # handleErrors { unauthorized: \e -> pure { id: 0, name: e.error, email: "" } }
         liftAff $ user.name `shouldEqual` "Invalid token"
 
+  describe "GET with Boolean and Number query params" do
+    it "passes Boolean and Number query params" \_ ->
+      runOm {} { exception: \_ -> pure unit } do
+        result <- api.search { active: Just true, minScore: Just 3.14 }
+        liftAff do
+          result.active `shouldEqual` true
+          result.minScore `shouldEqual` 3.14
+
+    it "handles Nothing for optional Boolean/Number" \_ ->
+      runOm {} { exception: \_ -> pure unit } do
+        result <- api.search { active: Nothing, minScore: Nothing }
+        liftAff do
+          result.active `shouldEqual` false
+          result.minScore `shouldEqual` 0.0
+
 -- Server setup
 
 withServer :: forall a. (Unit -> _ a) -> _ a
@@ -218,13 +250,14 @@ withServer test = bracket acquire release (\_ -> test unit)
   acquire = do
     fastify <- liftEffect do
       f <- F.fastify {}
-      registerAPI
+      registerAPI @API
         { getUser: getUserHandler
         , listUsers: listUsersHandler
         , createUser: createUserHandler
         , updateUser: updateUserHandler
         , deleteUser: deleteUserHandler
         , me: meHandler
+        , search: searchHandler
         }
         f
       pure f

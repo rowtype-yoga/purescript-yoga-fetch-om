@@ -277,7 +277,17 @@
         }
       }
     },
-    "extra_packages": {}
+    "extra_packages": {
+      "yoga-fastify": {
+        "path": "../purescript-yoga-fastify-om/local-packages/yoga-fastify"
+      },
+      "yoga-fastify-om": {
+        "path": "../purescript-yoga-fastify-om"
+      },
+      "yoga-http-api": {
+        "path": "../purescript-yoga-fastify-om/local-packages/yoga-http-api"
+      }
+    }
   },
   "packages": {
     "aff": {
