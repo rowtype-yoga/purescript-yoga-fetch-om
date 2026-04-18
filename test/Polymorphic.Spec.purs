@@ -12,7 +12,7 @@ import Yoga.Fastify.Fastify (Port(..), Host(..))
 import Yoga.Fastify.Om.API (registerAPI)
 import Yoga.Fastify.Om.Route (Handler, handle, respond)
 import Yoga.Fetch.Om (GET, Route, type (/), type (:), client)
-import Yoga.Om (Om, ask, expand, runOm)
+import Yoga.Om (Om, ask, runOm)
 
 type User = { id :: Int, name :: String }
 
@@ -29,23 +29,23 @@ spec = around withServer $ describe "polymorphic client" do
   it "fetches user with { token :: String } context" \_ ->
     runOm { token: "secret123" } { exception: \_ -> pure unit } do
       ctx <- ask
-      user <- api.getUser { id: 42 } # expand
+      user <- api.getUser { id: 42 }
       liftAff $ (ctx.token <> ":" <> user.name) `shouldEqual` "secret123:User 42"
 
   it "fetches user with { apiKey :: String, userId :: Int } context" \_ ->
     runOm { apiKey: "mykey", userId: 7 } { exception: \_ -> pure unit } do
       ctx <- ask
-      user <- api.getUser { id: ctx.userId } # expand
+      user <- api.getUser { id: ctx.userId }
       liftAff $ (ctx.apiKey <> ":" <> user.name) `shouldEqual` "mykey:User 7"
 
   it "same api.getUser works in two different contexts" \_ -> do
     runOm { token: "tok1" } { exception: \_ -> pure unit } do
       ctx <- ask
-      user <- api.getUser { id: 1 } # expand
+      user <- api.getUser { id: 1 }
       liftAff $ (ctx.token <> ":" <> user.name) `shouldEqual` "tok1:User 1"
     runOm { endpoint: "prod", region: "eu" } { exception: \_ -> pure unit } do
       ctx <- ask
-      user <- api.getUser { id: 2 } # expand
+      user <- api.getUser { id: 2 }
       liftAff $ (ctx.endpoint <> "-" <> ctx.region <> ":" <> user.name) `shouldEqual` "prod-eu:User 2"
 
 withServer :: forall a. (Unit -> _ a) -> _ a

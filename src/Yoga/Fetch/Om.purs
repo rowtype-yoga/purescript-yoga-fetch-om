@@ -71,10 +71,12 @@ else instance
     headerValue = printHeader (Record.get (Proxy :: Proxy name) headers)
     rest = toHeaders (Proxy :: Proxy tail) (unsafeCoerce headers :: Record tailRow)
 
-class DeriveClientFn :: forall k1. Type -> k1 -> Type -> Row Type -> Row Type -> Row Type -> Type -> Type -> Constraint
+class DeriveClientFn
+  :: forall k1. Type -> k1 -> Type -> Row Type -> Row Type -> Row Type -> Row Type -> Type -> Type -> Constraint
 class
-  DeriveClientFn method segments request response routeErrors successRow result fn
-  | method segments request response -> routeErrors successRow result fn where
+  DeriveClientFn method segments request response ctx extraErr routeErrors result fn
+  | method segments request response -> routeErrors result
+  , method segments request response ctx extraErr -> fn where
   deriveClientFn :: String -> Proxy (Route method segments request response) -> fn
 
 instance
@@ -97,14 +99,15 @@ instance
   , RowToList headers headersRL
   , ToHeaders headersRL headers
   , CheckBodyIsUnit body bodyFlag
-  , BuildClientFn pathQueryRL headersRL bodyFlag body pathQuery headers routeErrors result fn
+  , Row.Union routeErrors extraErr errRow
+  , BuildClientFn pathQueryRL headersRL bodyFlag body pathQuery headers { | ctx } errRow result fn
   ) =>
-  DeriveClientFn method segments request response routeErrors successRow result fn where
+  DeriveClientFn method segments request response ctx extraErr routeErrors result fn where
   deriveClientFn baseUrl _ =
     buildClientFn (Proxy :: _ pathQueryRL) (Proxy :: _ headersRL) (Proxy :: _ bodyFlag) impl
     where
-    impl :: Record pathQuery -> Record headers -> body -> Om (Record ()) routeErrors result
-    impl pathQueryRec headersRec bodyVal = do
+    impl :: Record pathQuery -> Record headers -> body -> Om { | ctx } errRow result
+    impl pathQueryRec headersRec bodyVal = widenOm do
       let url = buildUrl baseUrl (Proxy :: _ segments) pathParamsRec queryParamsRec
       let hdrs = toHeaders (Proxy :: _ headersRL) headersRec
       let ct = encodingContentType (Proxy :: _ encoding)
@@ -114,9 +117,11 @@ instance
       where
       pathParamsRec = unsafeCoerce pathQueryRec :: Record pathParams
       queryParamsRec = unsafeCoerce pathQueryRec :: Record queryParams
+      widenOm :: Om (Record ()) routeErrors ~> Om { | ctx } errRow
+      widenOm = unsafeCoerce
 
-class DeriveClient :: Row Type -> Row Type -> Constraint
-class DeriveClient routesRow clientsRow | routesRow -> clientsRow where
+class DeriveClient :: Row Type -> Row Type -> Row Type -> Row Type -> Constraint
+class DeriveClient ctx extraErr routesRow clientsRow | routesRow ctx extraErr -> clientsRow where
   deriveClientImpl :: String -> Proxy (Record routesRow) -> Record clientsRow
 
 -- | Derive API client functions from route definitions using VTA
@@ -125,44 +130,44 @@ class DeriveClient routesRow clientsRow | routesRow -> clientsRow where
 -- | type UserAPI = { getUser :: Route ... }
 -- | api = client @UserAPI "https://api.example.com"
 -- | ```
-client :: forall @routes routesRow clientsRow. RecordRow routes routesRow => DeriveClient routesRow clientsRow => String -> Record clientsRow
-client baseUrl = deriveClientImpl baseUrl (Proxy :: _ { | routesRow })
+client :: forall @routes routesRow ctx extraErr clientsRow. RecordRow routes routesRow => DeriveClient ctx extraErr routesRow clientsRow => String -> Record clientsRow
+client baseUrl = deriveClientImpl @ctx @extraErr baseUrl (Proxy :: _ { | routesRow })
 
 -- | Deprecated: Use `client` with VTA instead
 -- |
 -- | ```purescript
 -- | api = deriveClient @UserAPI "https://api.example.com"
 -- | ```
-deriveClient :: forall @routesRow clientsRow. DeriveClient routesRow clientsRow => String -> Record clientsRow
-deriveClient baseUrl = deriveClientImpl baseUrl (Proxy :: _ { | routesRow })
+deriveClient :: forall @routesRow ctx extraErr clientsRow. DeriveClient ctx extraErr routesRow clientsRow => String -> Record clientsRow
+deriveClient baseUrl = deriveClientImpl @ctx @extraErr baseUrl (Proxy :: _ { | routesRow })
 
 plainText :: PlainText -> String
 plainText = unsafeCoerce
 
 instance
   ( RowToList routesRow rl
-  , DeriveClientRL rl () clientsRow
+  , DeriveClientRL ctx extraErr rl () clientsRow
   ) =>
-  DeriveClient routesRow clientsRow where
-  deriveClientImpl baseUrl _ = deriveClientRL baseUrl (Proxy :: _ rl) {}
+  DeriveClient ctx extraErr routesRow clientsRow where
+  deriveClientImpl baseUrl _ = deriveClientRL @ctx @extraErr baseUrl (Proxy :: _ rl) {}
 
-class DeriveClientRL :: RowList Type -> Row Type -> Row Type -> Constraint
-class DeriveClientRL rl acc out | rl acc -> out where
+class DeriveClientRL :: Row Type -> Row Type -> RowList Type -> Row Type -> Row Type -> Constraint
+class DeriveClientRL ctx extraErr rl acc out | ctx extraErr rl acc -> out where
   deriveClientRL :: String -> Proxy rl -> Record acc -> Record out
 
-instance DeriveClientRL RL.Nil acc acc where
+instance DeriveClientRL ctx extraErr RL.Nil acc acc where
   deriveClientRL _ _ acc = acc
 
 instance
   ( IsSymbol label
-  , DeriveClientFn method segments request response routeErrors successRow result fn
-  , DeriveClientRL tail acc1 acc2
+  , DeriveClientFn method segments request response ctx extraErr routeErrors result fn
+  , DeriveClientRL ctx extraErr tail acc1 acc2
   , Row.Cons label fn acc2 out
   , Row.Lacks label acc2
   , Row.Cons label (Route method segments request response) routeTail routeRow
   ) =>
-  DeriveClientRL (RL.Cons label (Route method segments request response) tail) acc1 out where
+  DeriveClientRL ctx extraErr (RL.Cons label (Route method segments request response) tail) acc1 out where
   deriveClientRL baseUrl _ acc = Record.insert (Proxy :: _ label) clientFn rest
     where
-    clientFn = deriveClientFn baseUrl (Proxy :: _ (Route method segments request response))
-    rest = deriveClientRL baseUrl (Proxy :: _ tail) acc
+    clientFn = deriveClientFn @_ @_ @_ @_ @ctx @extraErr baseUrl (Proxy :: _ (Route method segments request response))
+    rest = deriveClientRL @ctx @extraErr baseUrl (Proxy :: _ tail) acc
