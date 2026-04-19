@@ -13,6 +13,7 @@ module Yoga.Fetch.Om
   , module Yoga.HTTP.API.Route
   , module Yoga.HTTP.API.Path
   , plainText
+  , class HasAllFields
   , module Yoga.Fetch.Om.StreamDecode
   , module Yoga.Fetch.Om.Simple
   ) where
@@ -100,6 +101,8 @@ instance
   , RowToList headers headersRL
   , ToHeaders headersRL headers
   , CheckBodyIsUnit body bodyFlag
+  , RowToList pathParams pathParamsRL
+  , HasAllFields pathParamsRL given
   , Row.Union routeErrors extraErr errRow
   , BuildClientFn pathQueryRL headersRL bodyFlag body pathQuery headers given { | ctx } errRow result fn
   ) =>
@@ -143,6 +146,13 @@ client baseUrl = deriveClientImpl @ctx @extraErr baseUrl (Proxy :: _ { | routesR
 -- | ```
 deriveClient :: forall @routesRow ctx extraErr clientsRow. DeriveClient ctx extraErr routesRow clientsRow => String -> Record clientsRow
 deriveClient baseUrl = deriveClientImpl @ctx @extraErr baseUrl (Proxy :: _ { | routesRow })
+
+-- | Checks that all fields in the RowList exist in the given row.
+-- | Used to enforce required path params are present in the client argument.
+class HasAllFields (rl :: RL.RowList Type) (given :: Row Type)
+
+instance HasAllFields RL.Nil given
+instance (Row.Cons name ty rest given, HasAllFields tail given) => HasAllFields (RL.Cons name ty tail) given
 
 plainText :: PlainText -> String
 plainText = unsafeCoerce
