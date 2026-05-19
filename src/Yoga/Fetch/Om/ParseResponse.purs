@@ -45,10 +45,8 @@ instance
     jsonText <- Promise.toAffE (Fetch.text fetchResp) # fromAff
     if status >= 200 && status < 300 then
       parseSuccessRL (Proxy :: _ successRL) status jsonText # fromAff
-    else if status >= 400 then
-      parseErrorRL (Proxy :: _ errorRL) (Proxy :: _ errorRow) status jsonText
     else
-      throwError (Variant.inj (Proxy :: _ "exception") (Exception.error ("Unexpected HTTP status code: " <> show status)))
+      parseErrorRL (Proxy :: _ errorRL) (Proxy :: _ errorRow) status jsonText
 
 class ParseSuccessRL (rl :: RowList Type) (successRow :: Row Type) | rl -> successRow where
   parseSuccessRL :: Proxy rl -> Int -> String -> Aff (Variant successRow)
@@ -86,6 +84,20 @@ class ParseErrorRL (rl :: RowList Type) (errorRow :: Row Type) | rl -> errorRow 
 instance ParseErrorRL RL.Nil errorRow where
   parseErrorRL _ _ status _ =
     throwError (Variant.inj (Proxy :: _ "exception") (Exception.error ("Unexpected error status code: " <> show status)))
+
+else instance
+  ( IsSymbol label
+  , StatusCodeMap label
+  , Row.Cons label Unit tailRow errorRow
+  , Row.Lacks label tailRow
+  , Row.Cons label Unit tailExc (Exception errorRow)
+  , ParseErrorRL tailRL errorRow
+  ) =>
+  ParseErrorRL (RL.Cons label Unit tailRL) errorRow where
+  parseErrorRL _ errorProxy actualStatus jsonText = do
+    let StatusCode expected = statusCodeFor (Proxy :: _ label)
+    if actualStatus == expected then throwError (Variant.inj (Proxy :: _ label) unit)
+    else parseErrorRL (Proxy :: _ tailRL) errorProxy actualStatus jsonText
 
 else instance
   ( IsSymbol label
