@@ -34,8 +34,8 @@ import Yoga.Fetch.Om.BuildUrl (class BuildUrl, buildUrl)
 import Yoga.Fetch.Om.Simple (class DecodeResponse, decodeResponse, FetchError, FetchResponse, get, getWithHeaders, delete, deleteWithHeaders, delete_, post, postWithHeaders, post_, put, putWithHeaders, put_, patch, patchWithHeaders, patch_)
 import Yoga.Fetch.Om.StreamDecode (class StreamDecode, decodeStream)
 import Yoga.Fetch.Om.ClientFunction (class BuildClientFn, class CheckBodyIsUnit, buildClientFn)
-import Yoga.Fetch.Om.ExtractParams (class ExtractRequestBody, class ExtractRequestHeaders)
-import Yoga.Fetch.Om.MakeRequest (class MakeRequest, class SerializeBody, class ContentType, makeRequest, serializeBody, contentType)
+import Yoga.Fetch.Om.ExtractParams (class ExtractRequestBody, class ExtractBodyEncoding, class ExtractRequestHeaders)
+import Yoga.Fetch.Om.MakeRequest (class MakeRequest, class BodyEncoding, makeRequest, encodingContentType, encodeBody)
 import Yoga.Fetch.Om.ParseResponse (class ParseResponse, parseResponse)
 import Yoga.Fetch.Om.SplitResponses (class SplitResponses)
 import Yoga.Fetch.Om.Variant (class VariantOrValue, variantOrValue)
@@ -70,12 +70,12 @@ instance
   ( SegmentPathParams segments pathParams
   , SegmentQueryParams segments queryParams
   , ExtractRequestBody request body
+  , ExtractBodyEncoding request encoding
   , ExtractRequestHeaders request headers
   , PathPattern segments
   , BuildUrl segments pathParams queryParams
   , MakeRequest method
-  , SerializeBody body
-  , ContentType body
+  , BodyEncoding encoding body
   , SplitResponses response successRow routeErrors
   , ParseResponse routeErrors successRow
   , RowToList successRow successRL
@@ -96,7 +96,8 @@ instance
     impl pathQueryRec headersRec bodyVal = do
       let url = buildUrl baseUrl (Proxy :: _ segments) pathParamsRec queryParamsRec
       let hdrs = toHeaders (Proxy :: _ headersRL) headersRec
-      fetchResp <- makeRequest (Proxy :: _ method) url hdrs (contentType (Proxy :: _ body)) (serializeBody bodyVal) # toOm
+      let ct = encodingContentType (Proxy :: _ encoding)
+      fetchResp <- makeRequest (Proxy :: _ method) url hdrs ct (encodeBody @encoding bodyVal) # toOm
       variant <- parseResponse fetchResp :: Om (Record ()) routeErrors (Variant successRow)
       variantOrValue (Proxy :: _ successRL) variant # pure
       where

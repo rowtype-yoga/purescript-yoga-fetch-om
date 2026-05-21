@@ -30,5 +30,7 @@
     "spago": "0.93.42",
     "vitest": "^2.1.8"
   },
-  "dependencies": {}
+  "dependencies": {
+    "pino": "^10.3.1"
+  }
 }

@@ -5,6 +5,8 @@ module Yoga.Fetch.Om.ParseResponse
   , parseSuccessRL
   , class ParseErrorRL
   , parseErrorRL
+  , class ParseResponseBody
+  , parseResponseBody
   ) where
 
 import Prelude
@@ -36,6 +38,15 @@ import Yoga.Om.Error (Exception)
 import Yoga.Om.Strom (Strom)
 import Yoga.Om.Strom.WebStream as WebStream
 
+class ParseResponseBody (body :: Type) where
+  parseResponseBody :: String -> Either String body
+
+instance ParseResponseBody String where
+  parseResponseBody = Right
+
+else instance ReadForeign body => ParseResponseBody body where
+  parseResponseBody = withStringErrors <<< readJSON
+
 class ParseResponse (errorRow :: Row Type) (successRow :: Row Type) where
   parseResponse :: FetchResponse.Response -> Om {} errorRow (Variant successRow)
 
@@ -50,11 +61,9 @@ instance
     let status = Fetch.status fetchResp
     if status >= 200 && status < 300 then
       parseSuccessRL (Proxy :: _ successRL) status fetchResp # toOm
-    else if status >= 400 then do
+    else do
       errorText <- Promise.toAffE (Fetch.text fetchResp) # toOm
       parseErrorRL (Proxy :: _ errorRL) (Proxy :: _ errorRow) status errorText
-    else
-      throwError (Variant.inj (Proxy :: _ "exception") (Exception.error ("Unexpected HTTP status code: " <> show status)))
 
 class ParseSuccessRL (rl :: RowList Type) (successRow :: Row Type) | rl -> successRow where
   parseSuccessRL :: Proxy rl -> Int -> FetchResponse.Response -> Aff (Variant successRow)
@@ -100,7 +109,7 @@ else instance
 else instance
   ( IsSymbol label
   , StatusCodeMap label
-  , ReadForeign body
+  , ParseResponseBody body
   , Row.Cons label body tailRow successRow
   , Row.Lacks label tailRow
   , ParseSuccessRL tailRL successRow
@@ -110,7 +119,7 @@ else instance
     let StatusCode expected = statusCodeFor (Proxy :: _ label)
     if actualStatus == expected then do
       jsonText <- liftEffect (Fetch.text fetchResp) >>= Promise.toAff
-      case withStringErrors (readJSON jsonText) of
+      case parseResponseBody jsonText of
         Left errs -> Aff.throwError (Exception.error ("Failed to parse response (status " <> show actualStatus <> "):\n" <> errs))
         Right parsed -> pure (Variant.inj (Proxy :: _ label) parsed)
     else
@@ -148,7 +157,21 @@ else instance
 else instance
   ( IsSymbol label
   , StatusCodeMap label
-  , ReadForeign body
+  , Row.Cons label Unit tailRow errorRow
+  , Row.Lacks label tailRow
+  , Row.Cons label Unit tailExc (Exception errorRow)
+  , ParseErrorRL tailRL errorRow
+  ) =>
+  ParseErrorRL (RL.Cons label Unit tailRL) errorRow where
+  parseErrorRL _ errorProxy actualStatus jsonText = do
+    let StatusCode expected = statusCodeFor (Proxy :: _ label)
+    if actualStatus == expected then throwError (Variant.inj (Proxy :: _ label) unit)
+    else parseErrorRL (Proxy :: _ tailRL) errorProxy actualStatus jsonText
+
+else instance
+  ( IsSymbol label
+  , StatusCodeMap label
+  , ParseResponseBody body
   , Row.Cons label body tailRow errorRow
   , Row.Lacks label tailRow
   , Row.Cons label body tailExc (Exception errorRow)
@@ -157,7 +180,7 @@ else instance
   ParseErrorRL (RL.Cons label body tailRL) errorRow where
   parseErrorRL _ errorProxy actualStatus jsonText = do
     let StatusCode expected = statusCodeFor (Proxy :: _ label)
-    if actualStatus == expected then case withStringErrors (readJSON jsonText) of
+    if actualStatus == expected then case parseResponseBody jsonText of
       Left errs -> throwError (Variant.inj (Proxy :: _ "exception") (Exception.error ("Failed to parse error response (status " <> show actualStatus <> "):\n" <> errs)))
       Right parsed -> throwError (Variant.inj (Proxy :: _ label) parsed)
     else

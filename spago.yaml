@@ -2,7 +2,7 @@ workspace: {}
 package:
   name: yoga-fetch-om
   publish:
-    version: 0.6.2
+    version: 0.6.3
     license: MIT
     location:
       githubOwner: rowtype-yoga

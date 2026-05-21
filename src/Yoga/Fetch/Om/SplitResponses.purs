@@ -1,5 +1,6 @@
 module Yoga.Fetch.Om.SplitResponses
   ( class IsSuccessStatus
+  , class ExtractBodyRL
   , class ExtractBody
   , class SplitResponses
   , class SplitResponsesRL
@@ -10,6 +11,7 @@ import Prim.Boolean (True, False)
 import Prim.Row as Row
 import Prim.RowList (RowList)
 import Prim.RowList as RL
+import Data.Unit (Unit)
 import Yoga.HTTP.API.Route (Response)
 
 class IsSuccessStatus (label :: Symbol) (isSuccess :: Boolean) | label -> isSuccess
@@ -26,12 +28,22 @@ else instance IsSuccessStatus "alreadyReported" True
 else instance IsSuccessStatus "imUsed" True
 else instance IsSuccessStatus label False
 
+-- Traverse a RowList to find the "body" field; fall back to Unit if absent.
+class ExtractBodyRL (rl :: RowList Type) (body :: Type) | rl -> body
+
+instance ExtractBodyRL RL.Nil Unit
+
+instance ExtractBodyRL (RL.Cons "body" body tail) body
+
+else instance ExtractBodyRL tail body => ExtractBodyRL (RL.Cons label ty tail) body
+
 class ExtractBody (responseType :: Type) (bodyType :: Type) | responseType -> bodyType
 
 instance ExtractBody (Response headers body) body
 
 else instance
-  ( Row.Cons "body" body rest row
+  ( RL.RowToList row rl
+  , ExtractBodyRL rl body
   ) =>
   ExtractBody (Record row) body
 

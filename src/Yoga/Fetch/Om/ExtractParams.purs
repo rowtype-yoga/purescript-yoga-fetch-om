@@ -1,6 +1,7 @@
 module Yoga.Fetch.Om.ExtractParams
   ( class ExtractRequestHeaders
   , class ExtractRequestBody
+  , class ExtractBodyEncoding
   , class FindBodyType
   , class UnwrapEncoding
   , class FindHeaders
@@ -24,6 +25,18 @@ instance
 else instance
   ExtractRequestBody (Record row) body =>
   ExtractRequestBody (Request (Record row)) body
+
+class ExtractBodyEncoding :: Type -> Type -> Constraint
+class ExtractBodyEncoding request encoding | request -> encoding
+
+instance
+  ( RowToList row rl
+  , FindBodyType rl encoding
+  ) =>
+  ExtractBodyEncoding (Record row) encoding
+else instance
+  ExtractBodyEncoding (Record row) encoding =>
+  ExtractBodyEncoding (Request (Record row)) encoding
 
 class ExtractRequestHeaders :: Type -> Row Type -> Constraint
 class ExtractRequestHeaders request headers | request -> headers

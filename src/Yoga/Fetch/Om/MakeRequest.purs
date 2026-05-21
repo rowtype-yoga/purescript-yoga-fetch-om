@@ -4,8 +4,9 @@ module Yoga.Fetch.Om.MakeRequest
   , makeRequest
   , class SerializeBody
   , serializeBody
-  , class ContentType
-  , contentType
+  , class BodyEncoding
+  , encodingContentType
+  , encodeBody
   ) where
 
 import Prelude
@@ -31,7 +32,8 @@ import JS.Fetch.Integrity (Integrity(..))
 import JS.Fetch.Duplex as Duplex
 import JS.Fetch.Response (Response) as FetchResponse
 import Promise.Aff as Promise
-import Type.Proxy (Proxy)
+import Type.Proxy (Proxy(..))
+import Yoga.HTTP.API.Route.Encoding (JSON, FormData, NoBody)
 import Yoga.HTTP.API.Route.Method as Method
 import Yoga.JSON (class WriteForeign, writeJSON)
 
@@ -63,7 +65,7 @@ makeRequest
   -> String
   -> Maybe String
   -> Aff FetchResponse.Response
-makeRequest proxy url customHeaders defaultContentType maybeBody = do
+makeRequest proxy url customHeaders bodyContentType maybeBody = do
   request <- Request.new url options # liftEffect
   Promise.toAffE $ Fetch.fetch request
   where
@@ -73,7 +75,7 @@ makeRequest proxy url customHeaders defaultContentType maybeBody = do
   contentTypeArr = case maybeBody of
     Nothing -> []
     Just _ | hasContentType -> []
-    Just _ -> [ "Content-Type" /\ defaultContentType ]
+    Just _ -> [ "Content-Type" /\ bodyContentType ]
   allHeaders = Headers.fromFoldable (contentTypeArr <> customArr)
   body = case maybeBody of
     Nothing -> Body.empty
@@ -91,24 +93,30 @@ makeRequest proxy url customHeaders defaultContentType maybeBody = do
     , cache: Cache.Default
     }
 
-class ContentType :: Type -> Constraint
-class ContentType body where
-  contentType :: Proxy body -> String
-
-instance ContentType String where
-  contentType _ = "text/plain"
-else instance ContentType Unit where
-  contentType _ = "application/json"
-else instance ContentType body where
-  contentType _ = "application/json"
-
 class SerializeBody :: Type -> Constraint
 class SerializeBody body where
   serializeBody :: body -> Maybe String
 
-instance SerializeBody String where
-  serializeBody s = Just s
-else instance SerializeBody Unit where
+instance SerializeBody Unit where
   serializeBody _ = Nothing
 else instance WriteForeign body => SerializeBody body where
   serializeBody b = Just (writeJSON b)
+
+class BodyEncoding :: Type -> Type -> Constraint
+class BodyEncoding encoding body | encoding -> body where
+  encodingContentType :: Proxy encoding -> String
+  encodeBody :: body -> Maybe String
+
+instance WriteForeign ty => BodyEncoding (JSON ty) ty where
+  encodingContentType _ = "application/json"
+  encodeBody b = Just (writeJSON b)
+
+else instance BodyEncoding (FormData ty) ty where
+  encodingContentType _ = "application/x-www-form-urlencoded"
+  encodeBody b = Just (toUrlEncoded b)
+
+else instance BodyEncoding NoBody Unit where
+  encodingContentType _ = ""
+  encodeBody _ = Nothing
+
+foreign import toUrlEncoded :: forall a. a -> String
