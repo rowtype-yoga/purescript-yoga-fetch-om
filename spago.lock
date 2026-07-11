@@ -6,7 +6,7 @@
         "core": {
           "dependencies": [
             {
-              "aff": ">=7.1.0 <8.0.0"
+              "aff": ">=8.0.0 <9.0.0"
             },
             {
               "arraybuffer-types": ">=3.0.2 <4.0.0"
@@ -60,7 +60,7 @@
               "variant": ">=8.0.0 <9.0.0"
             },
             {
-              "yoga-http-api": ">=0.3.0 <0.4.0"
+              "yoga-http-api": ">=0.3.2 <0.4.0"
             },
             {
               "yoga-json": ">=5.2.1 <6.0.0"
@@ -69,7 +69,7 @@
               "yoga-om": ">=1.5.2 <2.0.0"
             },
             {
-              "yoga-om-strom": ">=0.4.2 <0.5.0"
+              "yoga-om-strom": ">=0.4.3 <0.5.0"
             }
           ]
         },
@@ -88,7 +88,7 @@
               "spec-discovery": ">=8.0.0 <9.0.0"
             },
             {
-              "yoga-fastify-om": ">=0.1.0 <0.4.0"
+              "yoga-fastify-om": ">=0.4.5 <0.5.0"
             }
           ]
         }
@@ -99,8 +99,8 @@
   "packages": {
     "aff": {
       "type": "registry",
-      "version": "7.1.0",
-      "integrity": "sha256-/nOpDQVnKIoP1pQ1ZZBYpadK0TuMlG4WwufGzJpsfD0=",
+      "version": "8.0.0",
+      "integrity": "sha256-9BRIrSdRoYybfiUmBqgKJ66cPqxYHb277bVWQMn/9sg=",
       "dependencies": [
         "control",
         "datetime",
@@ -1134,8 +1134,8 @@
     },
     "spec": {
       "type": "registry",
-      "version": "8.1.1",
-      "integrity": "sha256-b6qjDb7lUJGLV+WEoywLu6BCXC4zGpfbN43mTL+vBeI=",
+      "version": "8.1.2",
+      "integrity": "sha256-klPPJ6lBQI1CGOAdLJ+ZoGRt8XZippkTKjn53BrSkL0=",
       "dependencies": [
         "aff",
         "ansi",
@@ -1168,8 +1168,8 @@
     },
     "spec-discovery": {
       "type": "registry",
-      "version": "8.4.0",
-      "integrity": "sha256-aFp8bllT/wrxQu8hMlDchQQY08dQAz+Xdq2hZi5z3yY=",
+      "version": "8.4.1",
+      "integrity": "sha256-guvY+NtSOBQmM+HqNJ7woX6taN8hS1wEz7JDmdKF11E=",
       "dependencies": [
         "aff",
         "effect",
@@ -1181,8 +1181,8 @@
     },
     "spec-node": {
       "type": "registry",
-      "version": "0.0.3",
-      "integrity": "sha256-8/9+g0obbamV0YtqzmttbWs8HaWF7CEeW+eDtqzuAAo=",
+      "version": "0.0.2",
+      "integrity": "sha256-HDW02z3Mj+daux0j9487ApDBX32/gX0od6YR4zvDRZI=",
       "dependencies": [
         "aff",
         "argonaut-codecs",
@@ -1447,8 +1447,8 @@
     },
     "yoga-fastify": {
       "type": "registry",
-      "version": "0.3.0",
-      "integrity": "sha256-nQZq9ZSVFPSXFzLtC32iz4RRT0JgigFLKlAe1PGB+Lo=",
+      "version": "0.5.3",
+      "integrity": "sha256-KeAoEYXXNH2gHEl5Y7j9uMo5ipByLZp/p7u6pgQn6KU=",
       "dependencies": [
         "aff",
         "arrays",
@@ -1474,8 +1474,8 @@
     },
     "yoga-fastify-om": {
       "type": "registry",
-      "version": "0.3.2",
-      "integrity": "sha256-otv4BiPNnw/YQIgfpAWYgcgjUJYkkL4GUGV34Muni/0=",
+      "version": "0.4.5",
+      "integrity": "sha256-fPDRni+HjddpI7GPad5U2kVHxMPOZIsvTPFZtOPpiWI=",
       "dependencies": [
         "aff",
         "console",
@@ -1492,6 +1492,7 @@
         "refs",
         "routing-duplex",
         "transformers",
+        "typelevel-prelude",
         "unsafe-coerce",
         "variant",
         "yoga-fastify",
@@ -1504,8 +1505,8 @@
     },
     "yoga-http-api": {
       "type": "registry",
-      "version": "0.3.0",
-      "integrity": "sha256-cv4dQGgM6SQWXQmZFXMmjkFdddCPBzBP7NnNuov3iaI=",
+      "version": "0.3.2",
+      "integrity": "sha256-SiL07TYVjHPiQjMhnkYdoI3KrL6gNn1W1LigCN+80jA=",
       "dependencies": [
         "aff",
         "arrays",
@@ -1628,8 +1629,8 @@
     },
     "yoga-om-strom": {
       "type": "registry",
-      "version": "0.4.2",
-      "integrity": "sha256-BmKYog5spZOhW1foqbRVJn85UHIGsoDYi2iAbo6XeXw=",
+      "version": "0.4.3",
+      "integrity": "sha256-dxj1zveEES6lF+iiMHx+qOhUG3zmiJJnlNpwiAfUBRE=",
       "dependencies": [
         "aff",
         "arrays",
