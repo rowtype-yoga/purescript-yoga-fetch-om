@@ -24,7 +24,7 @@
               "exceptions": ">=6.1.0 <7.0.0"
             },
             {
-              "http-methods": ">=6.0.0 <7.0.0"
+              "http-methods": ">=6.1.0 <7.0.0"
             },
             {
               "js-fetch": ">=0.2.1 <0.3.0"
@@ -542,8 +542,8 @@
     },
     "http-methods": {
       "type": "registry",
-      "version": "6.0.0",
-      "integrity": "sha256-S0UjrJSgwJxEsFHM/pX77dM8V4HfvvDqdHPckQrtxMs=",
+      "version": "6.1.0",
+      "integrity": "sha256-WbjEmCv6rysY/aKwlrcspyzShi5bIQy+AFpDzPMnSP4=",
       "dependencies": [
         "either",
         "prelude",
