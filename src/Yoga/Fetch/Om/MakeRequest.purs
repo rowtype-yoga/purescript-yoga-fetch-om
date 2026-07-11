@@ -56,6 +56,9 @@ instance MakeRequest Method.DELETE where
 instance MakeRequest Method.PATCH where
   httpMethod _ = PATCH
 
+instance MakeRequest Method.QUERY where
+  httpMethod _ = QUERY
+
 makeRequest
   :: forall method
    . MakeRequest method
