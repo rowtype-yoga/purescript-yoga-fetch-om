@@ -1,18 +1,4 @@
-workspace:
-  packageSet:
-    registry: 77.2.0
-  extraPackages:
-    yoga-fastify-om: 0.4.5
-    yoga-http-api: 0.3.2
-    yoga-om: 1.5.2
-    yoga-om-strom: 0.4.3
-    http-methods:
-      git: https://github.com/purescript-contrib/purescript-http-methods.git
-      ref: a1ffee45eb82a02d272cd407a1a9592be1202df4
-      dependencies:
-        - either
-        - prelude
-        - strings
+workspace: {}
 package:
   name: yoga-fetch-om
   publish:
@@ -34,7 +20,7 @@ package:
     - effect: ">=4.0.0 <5.0.0"
     - either: ">=6.1.0 <7.0.0"
     - exceptions: ">=6.1.0 <7.0.0"
-    - http-methods: ">=6.0.0 <7.0.0"
+    - http-methods: ">=6.1.0 <7.0.0"
     - js-fetch: ">=0.2.1 <0.3.0"
     - js-promise-aff: ">=1.0.0 <2.0.0"
     - maybe: ">=6.0.0 <7.0.0"
