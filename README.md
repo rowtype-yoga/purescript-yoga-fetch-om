@@ -19,17 +19,18 @@ spago install justifill
 Version 0.8 exposes optional query parameters as explicit `Maybe` fields. Calls that passed plain values no longer compile:
 
 ```purescript
--- 0.7
-users <- api.listUsers { limit: 10, offset: 0 }
+-- 0.7: offset omitted
+users <- api.listUsers { limit: 10 }
 
--- 0.8
-users <- api.listUsers { limit: Just 10, offset: Just 0 }
+-- 0.8: every optional field is explicit
+users <- api.listUsers { limit: Just 10, offset: Nothing }
 allUsers <- api.listUsers { limit: Nothing, offset: Nothing }
 ```
 
 Import `Maybe(..)` from `Data.Maybe` when constructing these records directly. Alternatively, [`justifill`](https://pursuit.purescript.org/packages/purescript-justifill) wraps supplied values in `Just` and fills omitted fields with `Nothing`:
 
 ```purescript
+-- offset remains omitted at the call site
 users <- api.listUsers (justifill { limit: 10 })
 ```
 
