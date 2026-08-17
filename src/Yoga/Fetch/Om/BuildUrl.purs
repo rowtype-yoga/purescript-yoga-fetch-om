@@ -114,8 +114,22 @@ class AppendQueryParamsRL rl r where
 instance AppendQueryParamsRL RL.Nil r where
   appendQueryParamsRL _ _ acc = acc
 
--- Maybe ty: read with undefined-awareness — missing field → skip
+-- Maybe (Array ty): optional repeated query param — missing/empty field → no pairs
 instance
+  ( IsSymbol name
+  , SerializeParam ty
+  , AppendQueryParamsRL tail r
+  ) =>
+  AppendQueryParamsRL (RL.Cons name (Maybe (Array ty)) tail) r where
+  appendQueryParamsRL _ rec acc = appendQueryParamsRL (Proxy :: _ tail) rec acc'
+    where
+    encName = encodeURIComponent_ (reflectSymbol (Proxy :: _ name))
+    acc' = case (readOptional @name rec :: Maybe (Array ty)) of
+      Nothing -> acc
+      Just values -> acc <> map (\v -> encName <> "=" <> encodeURIComponent_ (serializeParam v)) values
+
+-- Maybe ty: read with undefined-awareness — missing field → skip
+else instance
   ( IsSymbol name
   , SerializeParam ty
   , AppendQueryParamsRL tail r
@@ -126,6 +140,21 @@ instance
     acc' = case (readOptional @name rec :: Maybe ty) of
       Nothing -> acc
       Just value -> Array.snoc acc (encodeURIComponent_ (reflectSymbol (Proxy :: _ name)) <> "=" <> encodeURIComponent_ (serializeParam value))
+
+-- Array ty: emit one `name=value` pair per element (repeated keys)
+else instance
+  ( IsSymbol name
+  , SerializeParam ty
+  , AppendQueryParamsRL tail r
+  , Row.Cons name (Array ty) tailRow r
+  ) =>
+  AppendQueryParamsRL (RL.Cons name (Array ty) tail) r where
+  appendQueryParamsRL _ rec acc =
+    appendQueryParamsRL (Proxy :: _ tail) rec (acc <> pairs)
+    where
+    encName = encodeURIComponent_ (reflectSymbol (Proxy :: _ name))
+    values = Record.get (Proxy :: _ name) rec
+    pairs = map (\v -> encName <> "=" <> encodeURIComponent_ (serializeParam v)) values
 
 -- bare ty (Required query param): always present
 else instance

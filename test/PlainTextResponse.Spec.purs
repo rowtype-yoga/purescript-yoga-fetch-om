@@ -29,7 +29,7 @@ type TestAPI =
         )
   }
 
-api :: { double :: forall ctx err. Payload -> Om ctx (badRequest :: String | err) Result }
+api :: { double :: forall ctx err. Payload -> Om (Record ctx) (badRequest :: String | err) Result }
 api = client @TestAPI "http://localhost:44933"
 
 spec :: Spec Unit

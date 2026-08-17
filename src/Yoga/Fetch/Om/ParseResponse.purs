@@ -33,7 +33,7 @@ import Yoga.HTTP.API.Route.Encoding (PlainText, Streaming)
 import Yoga.HTTP.API.Route.StatusCode (class StatusCodeMap, statusCodeFor, StatusCode(..))
 import Yoga.JSON (class ReadForeign, readJSON)
 import Yoga.JSON.Error (withStringErrors)
-import Yoga.Om (class ToOm, Om, toOm)
+import Yoga.Om (Om, toOm)
 import Yoga.Om.Error (Exception)
 import Yoga.Om.Strom (Strom)
 import Yoga.Om.Strom.WebStream as WebStream
@@ -106,6 +106,21 @@ else instance
     else
       parseSuccessRL (Proxy :: _ tailRL) actualStatus fetchResp
 
+
+else instance
+  ( IsSymbol label
+  , StatusCodeMap label
+  , Row.Cons label Unit tailRow successRow
+  , Row.Lacks label tailRow
+  , ParseSuccessRL tailRL successRow
+  ) =>
+  ParseSuccessRL (RL.Cons label Unit tailRL) successRow where
+  parseSuccessRL _ actualStatus fetchResp = do
+    let StatusCode expected = statusCodeFor (Proxy :: _ label)
+    if actualStatus == expected then
+      pure (Variant.inj (Proxy :: _ label) unit)
+    else
+      parseSuccessRL (Proxy :: _ tailRL) actualStatus fetchResp
 else instance
   ( IsSymbol label
   , StatusCodeMap label

@@ -80,6 +80,27 @@ spec = do
       let result = appendQueryParams @(search :: String) { search: "hello world&more=yes" } "/users"
       result `shouldEqual` "/users?search=hello%20world%26more%3Dyes"
 
+    it "repeats Array query params one pair per element" do
+      let
+        result = appendQueryParams @(categories :: Array Int)
+          { categories: [ 3030, 103130 ] }
+          "/users"
+      result `shouldEqual` "/users?categories=3030&categories=103130"
+
+    it "omits empty Array query params" do
+      let
+        result = appendQueryParams @(categories :: Array Int)
+          { categories: [] }
+          "/users"
+      result `shouldEqual` "/users"
+
+    it "mixes Array and bare query params" do
+      let
+        result = appendQueryParams @(query :: String, categories :: Array Int)
+          { query: "foo", categories: [ 1, 2 ] }
+          "/users"
+      result `shouldEqual` "/users?categories=1&categories=2&query=foo"
+
   describe "buildUrl" do
     it "builds URL with path params only" do
       let

@@ -8,6 +8,12 @@ Derive type-safe fetch clients from `purescript-yoga-http-api` route definitions
 spago install yoga-fetch-om
 ```
 
+Optional query examples below use [`justifill`](https://pursuit.purescript.org/packages/purescript-justifill):
+
+```bash
+spago install justifill
+```
+
 ## Quick Start
 
 ### Example 1: Simple GET and POST Requests
@@ -30,8 +36,13 @@ main = do
 ### Example 2: Type-Safe API Client with Full CRUD
 
 ```purescript
+import Justifill (justifill)
+
 type UserAPI =
-  { getUser ::
+  { health ::
+      Route GET "health" {}
+        ( ok :: { body :: { status :: String } } )
+  , getUser ::
       Route GET ("users" / "id" : Int) {}
         ( ok :: { body :: User }
         , notFound :: { body :: ErrorMessage }
@@ -59,7 +70,8 @@ type UserAPI =
 
 api = client @UserAPI "https://api.example.com"
 
--- Create a user
+-- Generated methods use ordinary function application.
+health <- api.health
 user <- api.createUser { name: "Alice", email: "alice@example.com" }
   # handleErrors
       { badRequest: \err -> do
@@ -67,15 +79,21 @@ user <- api.createUser { name: "Alice", email: "alice@example.com" }
           throw err
       }
 
--- Update with path param + body
-updated <- api.updateUser { id: user.id } { name: "Alice Updated", email: user.email }
+-- Path parameters and request bodies remain separate arguments.
+updated <- api.updateUser
+  { id: user.id }
+  { name: "Alice Updated", email: user.email }
   # handleErrors
       { notFound: \_ -> throw userNotFound
       , badRequest: \err -> throw validationError
       }
 
--- Query with pagination
-users <- api.listUsers { limit: 10, offset: 0 }
+-- Optional query parameters are explicit `Maybe` fields. Justifill can wrap
+-- supplied values in `Just` and fill omitted fields with `Nothing`.
+users <- api.listUsers (justifill { limit: 10 })
+
+-- The equivalent call without Justifill:
+allUsers <- api.listUsers { limit: Nothing, offset: Nothing }
 ```
 
 ## More Examples

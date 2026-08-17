@@ -22,17 +22,17 @@ instance CheckBodyIsUnit Unit IsUnit
 else instance CheckBodyIsUnit body IsNotUnit
 
 class BuildClientFn
-  :: RowList Type -> RowList Type -> Type -> Type -> Row Type -> Row Type -> Row Type -> Type -> Row Type -> Type -> Type -> Constraint
+  :: RowList Type -> RowList Type -> Type -> Type -> Row Type -> Row Type -> Type -> Type -> Row Type -> Type -> Type -> Constraint
 class
-  BuildClientFn pathQueryRL headersRL bodyFlag body pathQuery headers given ctx errorRow result fn
+  BuildClientFn pathQueryRL headersRL bodyFlag body pathQuery headers arg ctx errorRow result fn
   | pathQueryRL -> pathQuery
   , headersRL -> headers
-  , pathQueryRL headersRL bodyFlag body given ctx errorRow result -> fn where
+  , pathQueryRL headersRL bodyFlag body arg ctx errorRow result -> fn where
   buildClientFn
     :: Proxy pathQueryRL
     -> Proxy headersRL
     -> Proxy bodyFlag
-    -> (Record given -> Record pathQuery)
+    -> (arg -> Record pathQuery)
     -> (Record pathQuery -> Record headers -> body -> Om ctx errorRow result)
     -> fn
 
@@ -44,7 +44,7 @@ instance
     Unit
     ()
     ()
-    given
+    arg
     ctx
     errorRow
     result
@@ -59,7 +59,7 @@ instance
     body
     ()
     ()
-    given
+    arg
     ctx
     errorRow
     result
@@ -74,7 +74,7 @@ instance
     Unit
     ()
     h
-    given
+    arg
     ctx
     errorRow
     result
@@ -89,7 +89,7 @@ instance
     body
     ()
     h
-    given
+    arg
     ctx
     errorRow
     result
@@ -104,11 +104,11 @@ instance
     Unit
     pq
     ()
-    given
+    arg
     ctx
     errorRow
     result
-    (Record given -> Om ctx errorRow result) where
+    (arg -> Om ctx errorRow result) where
   buildClientFn _ _ _ convert f pqr = f (convert pqr) {} unit
 
 -- With path/query, no headers, with body
@@ -119,11 +119,11 @@ instance
     body
     pq
     ()
-    given
+    arg
     ctx
     errorRow
     result
-    (Record given -> body -> Om ctx errorRow result) where
+    (arg -> body -> Om ctx errorRow result) where
   buildClientFn _ _ _ convert f pqr b = f (convert pqr) {} b
 
 -- With path/query, with headers, no body
@@ -134,11 +134,11 @@ instance
     Unit
     pq
     h
-    given
+    arg
     ctx
     errorRow
     result
-    (Record given -> Record h -> Om ctx errorRow result) where
+    (arg -> Record h -> Om ctx errorRow result) where
   buildClientFn _ _ _ convert f pqr hdrs = f (convert pqr) hdrs unit
 
 -- With path/query, with headers, with body
@@ -149,9 +149,9 @@ instance
     body
     pq
     h
-    given
+    arg
     ctx
     errorRow
     result
-    (Record given -> Record h -> body -> Om ctx errorRow result) where
+    (arg -> Record h -> body -> Om ctx errorRow result) where
   buildClientFn _ _ _ convert f pqr hdrs b = f (convert pqr) hdrs b

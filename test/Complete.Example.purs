@@ -3,9 +3,9 @@ module Complete.Example where
 import Prelude
 
 import Data.Array (length)
-import Data.Maybe (Maybe(..))
+import Justifill (justifill)
 import Effect.Class.Console (log)
-import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Route, JSON, Path, type (/), type (:), type (:?), client)
+import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Route, JSON, type (/), type (:), type (:?), client)
 import Yoga.HTTP.API.Route (BearerToken(..))
 import Yoga.Om (Om, handleErrors)
 
@@ -31,43 +31,37 @@ type ErrorMessage =
 
 type UserAPI =
   { getUser ::
-      Route GET
-        (Path ("users" / "id" : Int))
+      Route GET ("users" / "id" : Int)
         {}
         ( ok :: { body :: User }
         , notFound :: { body :: ErrorMessage }
         )
   , listUsers ::
-      Route GET
-        (Path "users" :? { limit :: Int, offset :: Int })
+      Route GET ("users" :? { limit :: Int, offset :: Int })
         {}
         ( ok :: { body :: Array User }
         )
   , createUser ::
-      Route POST
-        (Path "users")
+      Route POST "users"
         { body :: JSON CreateUserRequest }
         ( created :: { body :: User }
         , badRequest :: { body :: ErrorMessage }
         )
   , updateUser ::
-      Route PUT
-        (Path ("users" / "id" : Int))
+      Route PUT ("users" / "id" : Int)
         { body :: JSON UpdateUserRequest }
         ( ok :: { body :: User }
         , notFound :: { body :: ErrorMessage }
         , badRequest :: { body :: ErrorMessage }
         )
   , deleteUser ::
-      Route DELETE
-        (Path ("users" / "id" : Int))
+      Route DELETE ("users" / "id" : Int)
         {}
-        ( noContent :: { body :: {} }
+        ( noContent :: {}
         , notFound :: { body :: ErrorMessage }
         )
   , createUserAuth ::
-      Route POST
-        (Path "users")
+      Route POST "users"
         { headers :: Record (authorization :: BearerToken), body :: JSON CreateUserRequest }
         ( created :: { body :: User }
         , badRequest :: { body :: ErrorMessage }
@@ -85,15 +79,15 @@ exampleGetUserHandled :: Om {} () Unit
 exampleGetUserHandled = do
   user <- api.getUser { id: 42 }
     # handleErrors
-        { notFound: \err -> do
+        { notFound: \err -> ado
             log $ "User not found: " <> err.error
-            pure { id: 0, name: "unknown", email: "" }
+            in { id: 0, name: "unknown", email: "" }
         }
   log $ "Found user: " <> user.name
 
 exampleListUsers :: Om {} () Unit
 exampleListUsers = do
-  users <- api.listUsers { limit: Just 10, offset: Just 0 }
+  users <- api.listUsers (justifill { limit: 10, offset: 0 })
   log $ "Found " <> show (length users) <> " users"
 
 exampleCreateUser :: Om {} (badRequest :: ErrorMessage) Unit
@@ -106,7 +100,8 @@ exampleCreateUser = do
 
 exampleUpdateUser :: Om {} (notFound :: ErrorMessage, badRequest :: ErrorMessage) Unit
 exampleUpdateUser = do
-  user <- api.updateUser { id: 42 }
+  user <- api.updateUser
+    { id: 42 }
     { name: "Alice Updated"
     , email: "alice.new@example.com"
     }

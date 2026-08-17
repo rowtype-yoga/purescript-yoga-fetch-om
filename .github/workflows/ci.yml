@@ -14,3 +14,4 @@ jobs:
       - uses: rowtype-yoga/purescript-yoga-actions/.github/actions/setup@main
       - run: spago build
       - run: spago test
+      - run: bun compile-fail-tests/run.js

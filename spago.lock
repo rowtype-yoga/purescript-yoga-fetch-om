@@ -60,7 +60,7 @@
               "variant": ">=8.0.0 <9.0.0"
             },
             {
-              "yoga-http-api": ">=0.3.2 <0.4.0"
+              "yoga-http-api": ">=0.3.4 <0.4.0"
             },
             {
               "yoga-json": ">=5.2.1 <6.0.0"
@@ -164,6 +164,9 @@
               "console": ">=6.0.0 <7.0.0"
             },
             {
+              "justifill": ">=0.5.0 <0.6.0"
+            },
+            {
               "refs": ">=6.0.0 <7.0.0"
             },
             {
@@ -173,7 +176,7 @@
               "spec-discovery": ">=8.0.0 <9.0.0"
             },
             {
-              "yoga-fastify-om": ">=0.4.5 <0.5.0"
+              "yoga-fastify-om": ">=0.4.7 <0.5.0"
             }
           ],
           "build_plan": [
@@ -216,6 +219,7 @@
             "js-promise",
             "js-promise-aff",
             "js-uri",
+            "justifill",
             "lazy",
             "lists",
             "literals",
@@ -277,17 +281,7 @@
         }
       }
     },
-    "extra_packages": {
-      "yoga-fastify": {
-        "path": "../purescript-yoga-fastify-om/local-packages/yoga-fastify"
-      },
-      "yoga-fastify-om": {
-        "path": "../purescript-yoga-fastify-om"
-      },
-      "yoga-http-api": {
-        "path": "../purescript-yoga-fastify-om/local-packages/yoga-http-api"
-      }
-    }
+    "extra_packages": {}
   },
   "packages": {
     "aff": {
@@ -862,6 +856,17 @@
         "functions",
         "maybe",
         "prelude"
+      ]
+    },
+    "justifill": {
+      "type": "registry",
+      "version": "0.5.0",
+      "integrity": "sha256-IwoDO72+IROcUvFIwnronb/ny8SepssgTUG3Qp2TEKg=",
+      "dependencies": [
+        "maybe",
+        "prelude",
+        "record",
+        "typelevel-prelude"
       ]
     },
     "lazy": {
@@ -1640,8 +1645,8 @@
     },
     "yoga-fastify": {
       "type": "registry",
-      "version": "0.5.3",
-      "integrity": "sha256-KeAoEYXXNH2gHEl5Y7j9uMo5ipByLZp/p7u6pgQn6KU=",
+      "version": "0.5.4",
+      "integrity": "sha256-YenjePRdiApMPpcvkXlzre7c4fIuvk5T19Z2uEAWhR4=",
       "dependencies": [
         "aff",
         "arrays",
@@ -1667,8 +1672,8 @@
     },
     "yoga-fastify-om": {
       "type": "registry",
-      "version": "0.4.5",
-      "integrity": "sha256-fPDRni+HjddpI7GPad5U2kVHxMPOZIsvTPFZtOPpiWI=",
+      "version": "0.4.7",
+      "integrity": "sha256-KGQ7lHI7pcSiEQoEq6j6K+3XilcPy8wQ/M9C1y+uaEk=",
       "dependencies": [
         "aff",
         "console",
@@ -1680,10 +1685,12 @@
         "integers",
         "maybe",
         "node-buffer",
+        "numbers",
         "prelude",
         "record",
         "refs",
         "routing-duplex",
+        "strings",
         "transformers",
         "typelevel-prelude",
         "unsafe-coerce",
@@ -1698,19 +1705,25 @@
     },
     "yoga-http-api": {
       "type": "registry",
-      "version": "0.3.2",
-      "integrity": "sha256-SiL07TYVjHPiQjMhnkYdoI3KrL6gNn1W1LigCN+80jA=",
+      "version": "0.3.4",
+      "integrity": "sha256-DSIJ8YWr5vB5IMpyaBALM+fx57lz3AAAR0MGtfHeWxo=",
       "dependencies": [
         "aff",
+        "arraybuffer-types",
         "arrays",
+        "effect",
         "either",
         "foldable-traversable",
         "foreign",
         "foreign-object",
         "identity",
         "integers",
+        "js-promise",
+        "js-promise-aff",
         "maybe",
         "newtype",
+        "nullable",
+        "numbers",
         "prelude",
         "record",
         "strings",

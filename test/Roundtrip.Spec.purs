@@ -6,14 +6,17 @@ import Data.Maybe (Maybe(..))
 import Effect.Aff (bracket)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
+import Effect.Ref as Ref
+import Effect.Exception as Exn
+import Justifill (justifill)
 import Test.Spec (Spec, around, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Yoga.Fastify.Fastify as F
 import Yoga.Fastify.Fastify (Port(..), Host(..))
 import Yoga.Fastify.Om.API (registerAPI)
 import Yoga.Fastify.Om.Route (Handler, handle, respond, reject, BearerToken(..))
-import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Route, JSON, type (/), type (:), type (:?), client)
-import Yoga.Om (Om, ask, handleErrors, runOm)
+import Yoga.Fetch.Om (GET, POST, PUT, DELETE, Required, Route, JSON, type (/), type (:), type (:?), client, clientWith)
+import Yoga.Om (ask, handleErrors, runOm)
 
 -- Types
 
@@ -22,6 +25,7 @@ type CreateUserReq = { name :: String, email :: String }
 type ErrorMsg = { error :: String }
 
 -- Route definitions shared by server and client
+
 
 type GetUserRoute = Route GET
   ("users" / "id" : Int)
@@ -68,6 +72,28 @@ type SearchRoute = Route GET
   {}
   (ok :: { body :: { active :: Boolean, minScore :: Number } })
 
+type InjectedTenantRoute = Route GET
+  ("tenant-users" / "id" : Int :? { tenant :: Required String })
+  { headers :: { authorization :: BearerToken, requestid :: String } }
+  ( ok :: { body :: User }
+  , unauthorized :: { body :: ErrorMsg }
+  )
+
+type InjectedAPI =
+  { getTenantUser :: InjectedTenantRoute
+  }
+
+injectedApi tokenRef =
+  clientWith @InjectedAPI
+    { baseUrl: pure "http://localhost:44932"
+    , provide: do
+        ctx <- ask
+        token <- liftEffect $ Ref.read tokenRef
+        pure
+          { headers: { authorization: BearerToken token, requestid: ctx.requestid }
+          , query: { tenant: ctx.tenant }
+          }
+    }
 type API =
   { getUser :: GetUserRoute
   , listUsers :: ListUsersRoute
@@ -81,6 +107,7 @@ type API =
 api = client @API "http://localhost:44932"
 
 -- Handlers
+
 
 getUserHandler :: Handler GetUserRoute ()
 getUserHandler = handle do
@@ -147,10 +174,18 @@ searchHandler = handle do
         Nothing -> 0.0
   respond @"ok" { active, minScore }
 
+tenantUserHandler :: Handler InjectedTenantRoute ()
+tenantUserHandler = handle do
+  { path, query, headers } <- ask
+  case headers.authorization of
+    BearerToken "secret" -> respond @"ok" { id: path.id, name: query.tenant <> ":" <> headers.requestid, email: "tenant@test.com" }
+    _ -> reject @"unauthorized" { error: "Invalid token" }
+
 -- Test suite
 
 spec :: Spec Unit
 spec = around withServer $ describe "server ↔ client roundtrip" do
+
 
   describe "GET with path params" do
     it "returns user for valid id" \_ ->
@@ -168,12 +203,12 @@ spec = around withServer $ describe "server ↔ client roundtrip" do
   describe "GET with query params" do
     it "passes query params correctly" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        users <- api.listUsers { limit: 1 }
+        users <- api.listUsers (justifill { limit: 1 })
         liftAff $ (map _.name users) `shouldEqual` ["Alice"]
 
     it "handles no query params" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        users <- api.listUsers {}
+        users <- api.listUsers (justifill {})
         liftAff $ (map _.name users) `shouldEqual` ["Alice", "Bob", "Charlie"]
 
   describe "POST with JSON body" do
@@ -195,11 +230,22 @@ spec = around withServer $ describe "server ↔ client roundtrip" do
   describe "PUT with path params and JSON body" do
     it "sends path params and body together" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        user <- api.updateUser { id: 42 } { name: "Updated", email: "u@t.com" }
+        user <- api.updateUser
+          { id: 42 }
+          { name: "Updated", email: "u@t.com" }
           # handleErrors { notFound: \e -> pure { id: 0, name: e.error, email: "" } }
         liftAff do
           user.id `shouldEqual` 42
           user.name `shouldEqual` "Updated"
+
+    it "supports partial application before the body argument" \_ ->
+      runOm {} { exception: \_ -> pure unit } do
+        let update42 = api.updateUser { id: 42 }
+        user <- update42 { name: "Curried", email: "curried@t.com" }
+          # handleErrors { notFound: \e -> pure { id: 0, name: e.error, email: "" } }
+        liftAff do
+          user.id `shouldEqual` 42
+          user.name `shouldEqual` "Curried"
 
   describe "DELETE with path params" do
     it "deletes successfully" \_ ->
@@ -230,40 +276,60 @@ spec = around withServer $ describe "server ↔ client roundtrip" do
   describe "GET with Boolean and Number query params" do
     it "passes Boolean and Number query params" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        result <- api.search { active: true, minScore: 3.14 }
+        result <- api.search (justifill { active: true, minScore: 3.14 })
         liftAff do
           result.active `shouldEqual` true
           result.minScore `shouldEqual` 3.14
 
     it "handles missing optional query params" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        result <- api.search {}
+        result <- api.search (justifill {})
         liftAff do
           result.active `shouldEqual` false
           result.minScore `shouldEqual` 0.0
 
-  describe "partial query params — no wrapper needed" do
-    it "passes subset of query params directly" \_ ->
+  describe "optional query params" do
+    it "accepts a selected optional query parameter" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        users <- api.listUsers { limit: 1 }
+        users <- api.listUsers (justifill { limit: 1 })
         liftAff $ (map _.name users) `shouldEqual` ["Alice"]
 
-    it "passes all query params directly" \_ ->
+    it "accepts all optional query parameters" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        users <- api.listUsers { limit: 2, offset: 0 }
+        users <- api.listUsers (justifill { limit: 2, offset: 0 })
         liftAff $ (map _.name users) `shouldEqual` ["Alice", "Bob"]
 
-    it "passes empty record for all defaults" \_ ->
+    it "fills omitted optional query parameters with Nothing" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        users <- api.listUsers {}
+        users <- api.listUsers (justifill {})
         liftAff $ (map _.name users) `shouldEqual` ["Alice", "Bob", "Charlie"]
 
-    it "passes partial Boolean query param" \_ ->
+    it "passes selected Boolean query param" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        result <- api.search { active: true }
+        result <- api.search (justifill { active: true })
         liftAff do
           result.active `shouldEqual` true
           result.minScore `shouldEqual` 0.0
+
+  describe "clientWith injected inputs" do
+    it "reads provided headers and query params from Om context for each call" \_ -> do
+      tokenRef <- liftEffect $ Ref.new "secret"
+      let injected = injectedApi tokenRef
+      user <- runOm { tenant: "acme", requestid: "req-1" }
+        { exception: \e -> pure { id: -1, name: Exn.message e, email: "" }
+        , unauthorized: \e -> pure { id: -2, name: e.error, email: "" }
+        }
+        (injected.getTenantUser { id: 7 })
+      liftAff do
+        user.id `shouldEqual` 7
+        user.name `shouldEqual` "acme:req-1"
+      liftEffect $ Ref.write "wrong" tokenRef
+      rejected <- runOm { tenant: "acme", requestid: "req-2" }
+        { exception: \e -> pure { id: -1, name: Exn.message e, email: "" }
+        , unauthorized: \e -> pure { id: -2, name: e.error, email: "" }
+        }
+        (injected.getTenantUser { id: 8 })
+      liftAff $ rejected.name `shouldEqual` "Invalid token"
 
 -- Server setup
 
@@ -281,8 +347,8 @@ withServer test = bracket acquire release (\_ -> test unit)
         , deleteUser: deleteUserHandler
         , me: meHandler
         , search: searchHandler
-        }
-        f
+        } f
+      registerAPI @InjectedAPI { getTenantUser: tenantUserHandler } f
       pure f
     void $ F.listen { port: Port 44932, host: Host "0.0.0.0" } fastify
     pure fastify

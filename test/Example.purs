@@ -4,41 +4,46 @@ import Yoga.HTTP.API.Route (GET, POST, DELETE, Route, BearerToken)
 import Yoga.HTTP.API.Route.Encoding (JSON)
 import Yoga.HTTP.API.Path (Path, type (/), type (:), type (:?))
 
-type User = { id :: Int, name :: String, email :: String }
-type CreateUserRequest = { name :: String, email :: String }
+type User = { id :: UserId, name :: UserName, email :: UserMail }
+type CreateUserRequest = { name :: String, email :: UserMail }
 type ErrorMessage = { error :: String }
+newtype UserId = UserId Int
+newtype UserName = UserName String
+newtype UserMail = UserMail String
+newtype Limit = Limit Int
+newtype Offset = Offset Int
 
 type UserAPI =
   { getUser ::
       Route GET
-        (Path ("users" / "id" : Int))
+        ("users" / "id" : UserId)
         {}
         ( ok :: { body :: User }
         , notFound :: { body :: ErrorMessage }
         )
   , listUsers ::
       Route GET
-        (Path "users" :? { limit :: Int, offset :: Int })
+        ("users" :? { limit :: Limit, offset :: Offset })
         {}
         ( ok :: { body :: Array User }
         )
   , createUser ::
       Route POST
-        (Path "users")
+        "users"
         { body :: JSON CreateUserRequest }
         ( created :: { body :: User }
         , badRequest :: { body :: ErrorMessage }
         )
   , deleteUser ::
       Route DELETE
-        (Path ("users" / "id" : Int))
+        ("users" / "id" : UserId)
         {}
-        ( noContent :: { body :: {} }
+        ( noContent :: {}
         , notFound :: { body :: ErrorMessage }
         )
   , createUserAuth ::
       Route POST
-        (Path "users")
+        "users"
         { headers :: Record (authorization :: BearerToken), body :: JSON CreateUserRequest }
         ( created :: { body :: User }
         , badRequest :: { body :: ErrorMessage }

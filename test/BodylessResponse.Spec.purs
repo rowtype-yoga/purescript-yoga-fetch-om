@@ -12,9 +12,9 @@ import Test.Spec (Spec, around, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Yoga.Fastify.Fastify as F
 import Yoga.Fastify.Fastify (Port(..), Host(..), RouteURL(..), StatusCode(..))
-import Yoga.Fastify.Om (createOmFastify, getOm)
-import Yoga.Fetch.Om (GET, Route, type (/), client)
-import Yoga.Om (Om, runOm)
+import Yoga.Fastify.Om (createOmFastify, deleteOm, getOm)
+import Yoga.Fetch.Om (DELETE, GET, Route, type (/), type (:), client)
+import Yoga.Om (runOm)
 
 type Resource = { id :: Int, name :: String }
 
@@ -27,9 +27,15 @@ type ResourceAPI =
         , notModified  :: {}
         , unauthorized :: {}
         )
+  , deleteUser ::
+      Route DELETE
+        ("bodyless-test" / "users" / "id" : Int)
+        {}
+        ( noContent :: {}
+        , notFound :: { body :: { error :: String } }
+        )
   }
 
-api :: forall ctx err. { getResource :: Om ctx (notModified :: Unit, unauthorized :: Unit | err) Resource }
 api = client @ResourceAPI "http://localhost:44932"
 
 spec :: Spec Unit
@@ -68,6 +74,15 @@ spec = around withServer $ describe "bodyless responses (notModified / unauthori
       api.getResource
     liftAff $ resource `shouldEqual` { id: 1, name: "test" }
 
+  it "204 No Content returns Unit for noContent shorthand" \serverMode -> do
+    liftEffect $ Ref.write "deleted" serverMode
+    result <- runOm {}
+      { exception: \_ -> pure false
+      , notFound: \_ -> pure false
+      }
+      (api.deleteUser { id: 1 } $> true)
+    liftAff $ result `shouldEqual` true
+
 withServer :: forall a. (Ref String -> Aff a) -> Aff a
 withServer test = bracket acquire release (\{ serverMode } -> test serverMode)
   where
@@ -77,6 +92,7 @@ withServer test = bracket acquire release (\{ serverMode } -> test serverMode)
       f <- F.fastify {}
       omApp <- createOmFastify {} f
       getOm (RouteURL "/bodyless-test/resource") (handler serverMode) omApp
+      deleteOm (RouteURL "/bodyless-test/users/:id") (deleteHandler serverMode) omApp
       pure f
     void $ F.listen { port: Port 44932, host: Host "0.0.0.0" } fastify
     pure { fastify, serverMode }
@@ -96,3 +112,14 @@ withServer test = bracket acquire release (\{ serverMode } -> test serverMode)
         void $ F.status (StatusCode 200) reply # liftEffect
         void $ F.header "content-type" "application/json" reply # liftEffect
         F.sendJson (unsafeToForeign { id: 1, name: "test" }) reply # liftAff
+
+  deleteHandler serverMode reply = do
+    mode <- liftEffect $ Ref.read serverMode
+    case mode of
+      "deleted" -> do
+        void $ F.status (StatusCode 204) reply # liftEffect
+        F.send (unsafeToForeign "") reply # liftAff
+      _ -> do
+        void $ F.status (StatusCode 404) reply # liftEffect
+        void $ F.header "content-type" "application/json" reply # liftEffect
+        F.sendJson (unsafeToForeign { error: "Missing user" }) reply # liftAff
