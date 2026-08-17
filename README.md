@@ -14,6 +14,27 @@ Optional query examples below use [`justifill`](https://pursuit.purescript.org/p
 spago install justifill
 ```
 
+## Migrating from 0.7
+
+Version 0.8 exposes optional query parameters as explicit `Maybe` fields. Calls that passed plain values no longer compile:
+
+```purescript
+-- 0.7
+users <- api.listUsers { limit: 10, offset: 0 }
+
+-- 0.8
+users <- api.listUsers { limit: Just 10, offset: Just 0 }
+allUsers <- api.listUsers { limit: Nothing, offset: Nothing }
+```
+
+Import `Maybe(..)` from `Data.Maybe` when constructing these records directly. Alternatively, [`justifill`](https://pursuit.purescript.org/packages/purescript-justifill) wraps supplied values in `Just` and fills omitted fields with `Nothing`:
+
+```purescript
+users <- api.listUsers (justifill { limit: 10 })
+```
+
+Path parameters and request bodies keep their existing argument shapes.
+
 ## Quick Start
 
 ### Example 1: Simple GET and POST Requests
