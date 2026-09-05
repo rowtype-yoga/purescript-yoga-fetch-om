@@ -2,8 +2,6 @@ module Yoga.Fetch.Om.MakeRequest
   ( class MakeRequest
   , httpMethod
   , makeRequest
-  , class SerializeBody
-  , serializeBody
   , class BodyEncoding
   , encodingContentType
   , encodeBody
@@ -32,8 +30,8 @@ import JS.Fetch.Integrity (Integrity(..))
 import JS.Fetch.Duplex as Duplex
 import JS.Fetch.Response (Response) as FetchResponse
 import Promise.Aff as Promise
-import Type.Proxy (Proxy(..))
-import Yoga.HTTP.API.Route.Encoding (JSON, FormData, NoBody)
+import Type.Proxy (Proxy)
+import Yoga.HTTP.API.Route.Encoding (JSON, FormData, PlainText, NoBody)
 import Yoga.HTTP.API.Route.Method as Method
 import Yoga.JSON (class WriteForeign, writeJSON)
 
@@ -96,15 +94,6 @@ makeRequest proxy url customHeaders bodyContentType maybeBody = do
     , cache: Cache.Default
     }
 
-class SerializeBody :: Type -> Constraint
-class SerializeBody body where
-  serializeBody :: body -> Maybe String
-
-instance SerializeBody Unit where
-  serializeBody _ = Nothing
-else instance WriteForeign body => SerializeBody body where
-  serializeBody b = Just (writeJSON b)
-
 class BodyEncoding :: Type -> Type -> Constraint
 class BodyEncoding encoding body | encoding -> body where
   encodingContentType :: Proxy encoding -> String
@@ -113,6 +102,10 @@ class BodyEncoding encoding body | encoding -> body where
 instance WriteForeign ty => BodyEncoding (JSON ty) ty where
   encodingContentType _ = "application/json"
   encodeBody b = Just (writeJSON b)
+
+else instance BodyEncoding PlainText String where
+  encodingContentType _ = "text/plain"
+  encodeBody = Just
 
 else instance BodyEncoding (FormData ty) ty where
   encodingContentType _ = "application/x-www-form-urlencoded"

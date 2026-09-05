@@ -1,0 +1,22 @@
+{
+  "all": true,
+  "include": [
+    "output/Yoga.Fetch.Om*/index.js",
+    "output/Yoga.Fetch.Om*/foreign.js"
+  ],
+  "exclude": [
+    "output/Yoga.Fetch.Om.ExtractParams/index.js",
+    "output/Yoga.Fetch.Om.SplitResponses/index.js"
+  ],
+  "reporter": [
+    "text",
+    "html",
+    "lcov"
+  ],
+  "reports-dir": "coverage",
+  "check-coverage": true,
+  "statements": 95,
+  "branches": 90,
+  "functions": 85,
+  "lines": 95
+}

@@ -21,7 +21,6 @@ module Yoga.Fetch.Om
   , toHeaders
   , module Yoga.HTTP.API.Route
   , module Yoga.HTTP.API.Path
-  , plainText
   , module Yoga.Fetch.Om.StreamDecode
   , module Yoga.Fetch.Om.Simple
   ) where
@@ -49,7 +48,7 @@ import Yoga.Fetch.Om.ParseResponse (class ParseResponse, parseResponse)
 import Yoga.Fetch.Om.SplitResponses (class SplitResponses)
 import Yoga.Fetch.Om.Variant (class VariantOrValue, variantOrValue)
 import Yoga.HTTP.API.Path (Path, Root, Lit, Capture, PathCons, Param, QueryParams, Required, type (/), type (:), type (:?), class PathPattern)
-import Yoga.HTTP.API.Route (Route(..), GET, POST, PUT, DELETE, PATCH, Response(..), JSON, FormData, PlainText, Streaming, NoBody, class HeaderValue, printHeader)
+import Yoga.HTTP.API.Route (Route(..), GET, POST, PUT, DELETE, PATCH, QUERY, Response(..), JSON, FormData, PlainText, Streaming, NoBody, class HeaderValue, printHeader)
 import Yoga.HTTP.API.Route.Handler (class SegmentPathParams, class SegmentQueryParams)
 import Yoga.Om (Om, toOm)
 
@@ -62,7 +61,6 @@ type ClientWithConfig ctx err providedHeaders providedQuery =
   { baseUrl :: Om { | ctx } err String
   , provide :: Om { | ctx } err (ClientInputs providedHeaders providedQuery)
   }
-
 
 foreign import mergeRecords :: forall left right out. Record left -> Record right -> Record out
 
@@ -139,6 +137,7 @@ instance
       where
       pathParamsRec = unsafeCoerce pathQueryRec :: Record pathParams
       queryParamsRec = unsafeCoerce pathQueryRec :: Record queryParams
+
       widenOm :: Om (Record ()) routeErrors ~> Om { | ctx } errRow
       widenOm = unsafeCoerce
 
@@ -202,6 +201,7 @@ instance
       where
       widenExtra :: Om { | ctx } extraErr ~> Om { | ctx } errRow
       widenExtra = unsafeCoerce
+
       widenRoute :: Om (Record ()) routeErrors ~> Om { | ctx } errRow
       widenRoute = unsafeCoerce
 
@@ -238,10 +238,6 @@ clientWith
   => ClientWithConfig ctx extraErr providedHeaders providedQuery
   -> Record clientsRow
 clientWith config = deriveClientWithImpl @providedHeaders @providedQuery @ctx @extraErr config (Proxy :: _ { | routesRow })
-
-
-plainText :: PlainText -> String
-plainText = unsafeCoerce
 
 instance
   ( RowToList routesRow rl

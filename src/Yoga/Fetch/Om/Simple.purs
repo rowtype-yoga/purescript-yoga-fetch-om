@@ -32,21 +32,14 @@ import JS.Fetch as Fetch
 import JS.Fetch.Duplex as Duplex
 import JS.Fetch.Headers (Headers)
 import JS.Fetch.Headers as Headers
-import JS.Fetch.Integrity (Integrity(..))
-import JS.Fetch.Referrer as Referrer
-import JS.Fetch.ReferrerPolicy as ReferrerPolicy
 import JS.Fetch.Request as Request
 import JS.Fetch.RequestBody as Body
-import JS.Fetch.RequestCache as Cache
-import JS.Fetch.RequestCredentials as Credentials
-import JS.Fetch.RequestMode as Mode
 import JS.Fetch.Response as Resp
 import Promise.Aff as Promise
 import Type.Row.Homogeneous (class Homogeneous)
--- PlainText removed, using local phantom type
 import Yoga.JSON (class ReadForeign, class WriteForeign, readJSON, writeJSON)
 import Yoga.JSON.Error (withStringErrors)
-import Yoga.Om (class ToOm, Om, toOm, throw)
+import Yoga.Om (Om, toOm, throw)
 
 type FetchError = { status :: Int, body :: String }
 
@@ -56,9 +49,7 @@ class DecodeResponse :: forall k. k -> Type -> Constraint
 class DecodeResponse a result | a -> result where
   decodeResponse :: String -> Either String result
 
-data PlainTextResponse
-
-instance DecodeResponse PlainTextResponse String where
+instance DecodeResponse String String where
   decodeResponse = Right
 
 else instance ReadForeign a => DecodeResponse a a where
@@ -147,7 +138,7 @@ delete_
   => String
   -> Record headers
   -> Om ctx (fetchError :: FetchError | err) Unit
-delete_ url headers = void $ simpleFetch @PlainTextResponse DELETE headers url Nothing
+delete_ url headers = void $ simpleFetch @String DELETE headers url Nothing
 
 post
   :: forall @a result headers body ctx err
@@ -179,7 +170,7 @@ post_
   -> Record headers
   -> body
   -> Om ctx (fetchError :: FetchError | err) Unit
-post_ url headers body = void $ simpleFetch @PlainTextResponse POST headers url (Just (writeJSON body))
+post_ url headers body = void $ simpleFetch @String POST headers url (Just (writeJSON body))
 
 put
   :: forall @a result headers body ctx err
@@ -211,7 +202,7 @@ put_
   -> Record headers
   -> body
   -> Om ctx (fetchError :: FetchError | err) Unit
-put_ url headers body = void $ simpleFetch @PlainTextResponse PUT headers url (Just (writeJSON body))
+put_ url headers body = void $ simpleFetch @String PUT headers url (Just (writeJSON body))
 
 patch
   :: forall @a result headers body ctx err
@@ -243,4 +234,4 @@ patch_
   -> Record headers
   -> body
   -> Om ctx (fetchError :: FetchError | err) Unit
-patch_ url headers body = void $ simpleFetch @PlainTextResponse PATCH headers url (Just (writeJSON body))
+patch_ url headers body = void $ simpleFetch @String PATCH headers url (Just (writeJSON body))

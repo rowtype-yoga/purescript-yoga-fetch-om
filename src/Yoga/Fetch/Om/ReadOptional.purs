@@ -4,16 +4,17 @@ module Yoga.Fetch.Om.ReadOptional
   , readPartialQuery
   ) where
 
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Prim.Row as Row
-import Prim.RowList (class RowToList, RowList)
+import Prim.RowList (RowList)
 import Prim.RowList as RL
 import Record as Record
 import Type.Proxy (Proxy(..))
 
 foreign import readOptionalImpl :: forall a r. String -> Record r -> Maybe a
 
+-- | Accept explicit `Maybe` fields as well as undefined-aware partial records.
 readOptional :: forall @name ty r. IsSymbol name => Record r -> Maybe ty
 readOptional rec = readOptionalImpl (reflectSymbol (Proxy :: _ name)) rec
 

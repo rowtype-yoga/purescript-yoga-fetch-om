@@ -19,7 +19,6 @@ import Prelude
 
 import Data.Array as Array
 import Data.Maybe (Maybe(..))
-import Data.String (Pattern(..), Replacement(..))
 import Data.String as String
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Prim.Row as Row
@@ -31,6 +30,10 @@ import Yoga.HTTP.API.Path (class PathPattern, pathPattern)
 import Yoga.Fetch.Om.ReadOptional (readOptional)
 
 foreign import encodeURIComponent_ :: String -> String
+foreign import appendPath_ :: String -> String -> String
+foreign import substitutePathParam_ :: String -> String -> String -> String
+
+foreign import appendQueryString_ :: String -> String -> String
 
 class BuildUrl :: forall k. k -> Row Type -> Row Type -> Constraint
 class BuildUrl segments pathParams queryParams | segments -> pathParams queryParams where
@@ -47,10 +50,7 @@ instance
     pattern = pathPattern segmentsProxy
     withBase = case baseUrl of
       "" -> pattern
-      base -> dropTrailingSlash base <> pattern
-    dropTrailingSlash s = case String.stripSuffix (Pattern "/") s of
-      Just s' -> dropTrailingSlash s'
-      Nothing -> s
+      base -> appendPath_ base pattern
     withPathParams = substitutePathParamsImpl (Proxy :: _ pathParams) pathParamsRec withBase
     withQueryParams = appendQueryParamsImpl (Proxy :: _ queryParams) queryParamsRec withPathParams
 
@@ -85,8 +85,8 @@ instance
   substitutePathParamsRL _ rec url = substitutePathParamsRL (Proxy :: _ tail) rec replaced
     where
     value = Record.get (Proxy :: _ name) rec
-    pattern = Pattern (":" <> reflectSymbol (Proxy :: _ name))
-    replaced = String.replaceAll pattern (Replacement (serializeParam value)) url
+    name = reflectSymbol (Proxy :: _ name)
+    replaced = substitutePathParam_ name (serializeParam value) url
 
 class AppendQueryParams :: Row Type -> Constraint
 class AppendQueryParams params where
@@ -100,12 +100,11 @@ instance
   , AppendQueryParamsRL rl params
   ) =>
   AppendQueryParams params where
-  appendQueryParamsImpl _ rec url = url <> queryString
+  appendQueryParamsImpl _ rec url = case pairs of
+    [] -> url
+    _ -> appendQueryString_ url (String.joinWith "&" pairs)
     where
     pairs = appendQueryParamsRL (Proxy :: _ rl) rec []
-    queryString = case pairs of
-      [] -> ""
-      _ -> "?" <> String.joinWith "&" pairs
 
 class AppendQueryParamsRL :: RowList Type -> Row Type -> Constraint
 class AppendQueryParamsRL rl r where

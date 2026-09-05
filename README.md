@@ -132,10 +132,10 @@ See the test files for complete, runnable examples with all imports:
 
 ### ✅ Type-Safe Everything
 
-- **Path parameters**: `/users/:id` requires `{ id: Int }`
-- **Query parameters**: Type-safe query strings with `?`
-- **Request bodies**: Automatic JSON serialization
-- **Response bodies**: Automatic JSON parsing
+- **Path parameters**: `/users/:id` requires `{ id :: Int }`; names and values are percent-encoded
+- **Query parameters**: Type-safe, percent-encoded query strings with explicit `Maybe` fields for optional values
+- **Request bodies**: `JSON`, `PlainText`, and URL-encoded `FormData`
+- **Response bodies**: Parsed JSON, `PlainText` as `String`, and `Streaming a` as `Strom {} () a`
 - **Error handling**: Exhaustive pattern matching on variants
 
 ### ✅ Single Source of Truth
@@ -155,12 +155,12 @@ Changes to routes automatically update both client and server!
 ### ✅ Automatic Derivation
 
 No manual client code:
-- ✅ URL building with path parameter substitution
-- ✅ Query string construction
-- ✅ JSON request serialization
-- ✅ JSON response parsing
+- ✅ URL building with segment-safe path substitution
+- ✅ Query construction that preserves existing queries and fragments
+- ✅ JSON, plain-text, and URL-encoded request serialization
+- ✅ JSON and plain-text response decoding
+- ✅ Incremental UTF-8 and binary response streams
 - ✅ Status code → variant mapping
-- ✅ CORS and credentials handling
 
 ### ✅ Integration with yoga-om
 
@@ -180,8 +180,9 @@ The library uses PureScript's type system to:
 
 1. **Extract parameters** from route definitions at compile time
    - Path params: `"users" / "id" : Int` → `{ id :: Int }`
-   - Query params: `:? { limit :: Int }` → `{ limit :: Int }`
-   - Body params: `{ body :: JSON User }` → request body
+   - Optional query params: `:? { limit :: Int }` → `{ limit :: Maybe Int }`
+   - Required query params: `:? { limit :: Required Int }` → `{ limit :: Int }`
+   - Body params: `{ body :: JSON User }` → `User`
 
 2. **Build URLs** automatically
    - Pattern: `/users/:id` + params: `{ id: 42 }` → `/users/42`
@@ -225,6 +226,21 @@ api = client @UserAPI "https://api.example.com"
 - ✅ FormData support
 - ✅ Variant response handling
 - ✅ Om monad integration
+
+## Testing
+
+```sh
+bun test
+bun run test:compile-fail
+bun run coverage
+```
+The suite combines example-based specifications with QuickCheck properties for
+URL encoding, suffix preservation, repeated parameters, optional fields, and
+query-separator invariants.
+
+The coverage command uses compiler source maps to report PureScript source
+coverage, includes JavaScript FFI modules, enforces regression thresholds, and
+writes HTML and LCOV reports to `coverage/`.
 
 ## License
 

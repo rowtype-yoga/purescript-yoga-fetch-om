@@ -2,7 +2,7 @@ module BuildUrl.Spec where
 
 import Prelude
 
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy(..))
@@ -34,6 +34,19 @@ spec = do
           { slug: "hello-world" }
           "/posts/:slug"
       result `shouldEqual` "/posts/hello-world"
+    it "URL-encodes reserved characters in path params" do
+      let
+        result = substitutePathParams @(slug :: String)
+          { slug: "a/b c?d#e" }
+          "/users/:slug"
+      result `shouldEqual` "/users/a%2Fb%20c%3Fd%23e"
+
+    it "distinguishes path param names with shared prefixes" do
+      let
+        result = substitutePathParams @(id :: Int, id2 :: Int)
+          { id: 1, id2: 2 }
+          "/pairs/:id/:id2"
+      result `shouldEqual` "/pairs/1/2"
 
     it "handles empty params" do
       let result = substitutePathParams @() {} "/users"
@@ -58,6 +71,14 @@ spec = do
           "/users"
       result `shouldEqual` "/users?limit=10"
 
+    it "serializes a present explicit Maybe query param" do
+      let result = appendQueryParams @(id :: Maybe Int) { id: Just 42 } "/users"
+      result `shouldEqual` "/users?id=42"
+
+    it "omits an explicit Nothing query param" do
+      let result = appendQueryParams @(id :: Maybe Int) { id: Nothing } "/users"
+      result `shouldEqual` "/users"
+
     it "handles optional params - omitted via partial record" do
       let
         result = appendQueryParams @(limit :: Maybe Int)
@@ -79,6 +100,13 @@ spec = do
     it "URL-encodes special characters in values" do
       let result = appendQueryParams @(search :: String) { search: "hello world&more=yes" } "/users"
       result `shouldEqual` "/users?search=hello%20world%26more%3Dyes"
+    it "appends query params to an existing query string" do
+      let result = appendQueryParams @(search :: String) { search: "new value" } "/users?token=old"
+      result `shouldEqual` "/users?token=old&search=new%20value"
+
+    it "inserts query params before a URL fragment" do
+      let result = appendQueryParams @(search :: String) { search: "new value" } "/users#details"
+      result `shouldEqual` "/users?search=new%20value#details"
 
     it "repeats Array query params one pair per element" do
       let
@@ -119,3 +147,21 @@ spec = do
           {}
           { limit: 10, offset: 20 }
       result `shouldEqual` "https://api.example.com/users?limit=10&offset=20"
+
+    it "appends route paths before base URL query strings and fragments" do
+      let
+        result = buildUrl
+          "https://api.example.com/base/?token=old#details"
+          (Proxy :: _ (Path "users"))
+          {}
+          { search: "new value" }
+      result `shouldEqual` "https://api.example.com/base/users?token=old&search=new%20value#details"
+
+    it "does not substitute path captures inside a base URL query string" do
+      let
+        result = buildUrl
+          "https://api.example.com?redirect=/:id#details"
+          (Proxy :: _ (Path ("users" / "id" : Int)))
+          { id: 42 }
+          {}
+      result `shouldEqual` "https://api.example.com/users/42?redirect=/:id#details"

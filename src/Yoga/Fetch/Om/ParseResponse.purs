@@ -29,7 +29,6 @@ import Promise.Aff as Promise
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 import Yoga.Fetch.Om.StreamDecode (class StreamDecode, decodeStream)
-import Yoga.HTTP.API.Route.Encoding (PlainText, Streaming)
 import Yoga.HTTP.API.Route.StatusCode (class StatusCodeMap, statusCodeFor, StatusCode(..))
 import Yoga.JSON (class ReadForeign, readJSON)
 import Yoga.JSON.Error (withStringErrors)
@@ -75,28 +74,12 @@ instance ParseSuccessRL RL.Nil successRow where
 else instance
   ( IsSymbol label
   , StatusCodeMap label
-  , Row.Cons label PlainText tailRow successRow
-  , Row.Lacks label tailRow
-  , ParseSuccessRL tailRL successRow
-  ) =>
-  ParseSuccessRL (RL.Cons label PlainText tailRL) successRow where
-  parseSuccessRL _ actualStatus fetchResp = do
-    let StatusCode expected = statusCodeFor (Proxy :: _ label)
-    if actualStatus == expected then do
-      text <- liftEffect (Fetch.text fetchResp) >>= Promise.toAff
-      pure (Variant.inj (Proxy :: _ label) (unsafeCoerce text))
-    else
-      parseSuccessRL (Proxy :: _ tailRL) actualStatus fetchResp
-
-else instance
-  ( IsSymbol label
-  , StatusCodeMap label
   , StreamDecode a
-  , Row.Cons label (Streaming a) tailRow successRow
+  , Row.Cons label (Strom streamContext streamError a) tailRow successRow
   , Row.Lacks label tailRow
   , ParseSuccessRL tailRL successRow
   ) =>
-  ParseSuccessRL (RL.Cons label (Streaming a) tailRL) successRow where
+  ParseSuccessRL (RL.Cons label (Strom streamContext streamError a) tailRL) successRow where
   parseSuccessRL _ actualStatus fetchResp = do
     let StatusCode expected = statusCodeFor (Proxy :: _ label)
     if actualStatus == expected then do
@@ -105,7 +88,6 @@ else instance
       pure (Variant.inj (Proxy :: _ label) (unsafeCoerce strom))
     else
       parseSuccessRL (Proxy :: _ tailRL) actualStatus fetchResp
-
 
 else instance
   ( IsSymbol label
@@ -152,22 +134,6 @@ class ParseErrorRL (rl :: RowList Type) (errorRow :: Row Type) | rl -> errorRow 
 instance ParseErrorRL RL.Nil errorRow where
   parseErrorRL _ _ status _ =
     throwError (Variant.inj (Proxy :: _ "exception") (Exception.error ("Unexpected error status code: " <> show status)))
-
-else instance
-  ( IsSymbol label
-  , StatusCodeMap label
-  , Row.Cons label PlainText tailRow errorRow
-  , Row.Lacks label tailRow
-  , Row.Cons label PlainText tailExc (Exception errorRow)
-  , ParseErrorRL tailRL errorRow
-  ) =>
-  ParseErrorRL (RL.Cons label PlainText tailRL) errorRow where
-  parseErrorRL _ errorProxy actualStatus text = do
-    let StatusCode expected = statusCodeFor (Proxy :: _ label)
-    if actualStatus == expected then
-      throwError (Variant.inj (Proxy :: _ label) (unsafeCoerce text))
-    else
-      parseErrorRL (Proxy :: _ tailRL) errorProxy actualStatus text
 
 else instance
   ( IsSymbol label

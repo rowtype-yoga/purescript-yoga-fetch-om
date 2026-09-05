@@ -26,7 +26,6 @@ type ErrorMsg = { error :: String }
 
 -- Route definitions shared by server and client
 
-
 type GetUserRoute = Route GET
   ("users" / "id" : Int)
   {}
@@ -72,6 +71,11 @@ type SearchRoute = Route GET
   {}
   (ok :: { body :: { active :: Boolean, minScore :: Number } })
 
+type FindByQueryRoute = Route GET
+  ("find-by-query" :? { id :: Int })
+  {}
+  (ok :: { body :: { id :: Int } })
+
 type InjectedTenantRoute = Route GET
   ("tenant-users" / "id" : Int :? { tenant :: Required String })
   { headers :: { authorization :: BearerToken, requestid :: String } }
@@ -94,6 +98,7 @@ injectedApi tokenRef =
           , query: { tenant: ctx.tenant }
           }
     }
+
 type API =
   { getUser :: GetUserRoute
   , listUsers :: ListUsersRoute
@@ -102,59 +107,60 @@ type API =
   , deleteUser :: DeleteUserRoute
   , me :: AuthRoute
   , search :: SearchRoute
+  , findByQuery :: FindByQueryRoute
   }
 
 api = client @API "http://localhost:44932"
 
 -- Handlers
 
-
 getUserHandler :: Handler GetUserRoute ()
 getUserHandler = handle do
   { path } <- ask
-  if path.id == 42
-    then respond @"ok" { id: 42, name: "Alice", email: "alice@test.com" }
-    else reject @"notFound" { error: "User " <> show path.id <> " not found" }
+  if path.id == 42 then respond @"ok" { id: 42, name: "Alice", email: "alice@test.com" }
+  else reject @"notFound" { error: "User " <> show path.id <> " not found" }
 
 listUsersHandler :: Handler ListUsersRoute ()
 listUsersHandler = handle do
   { query } <- ask
-  let users = [ { id: 1, name: "Alice", email: "a@t.com" }
-              , { id: 2, name: "Bob", email: "b@t.com" }
-              , { id: 3, name: "Charlie", email: "c@t.com" }
-              ]
-  let limited = case query.limit of
-        Just l -> take l users
-        Nothing -> users
+  let
+    users =
+      [ { id: 1, name: "Alice", email: "a@t.com" }
+      , { id: 2, name: "Bob", email: "b@t.com" }
+      , { id: 3, name: "Charlie", email: "c@t.com" }
+      ]
+  let
+    limited = case query.limit of
+      Just l -> take l users
+      Nothing -> users
   respond @"ok" limited
   where
-  take n xs = if n <= 0 then [] else case xs of
-    [] -> []
-    [a] -> [a]
-    [a, _] | n == 1 -> [a]
-    [a, b] -> [a, b]
-    _ -> xs
+  take n xs =
+    if n <= 0 then []
+    else case xs of
+      [] -> []
+      [ a ] -> [ a ]
+      [ a, _ ] | n == 1 -> [ a ]
+      [ a, b ] -> [ a, b ]
+      _ -> xs
 
 createUserHandler :: Handler CreateUserRoute ()
 createUserHandler = handle do
   { body } <- ask
-  if body.name == ""
-    then reject @"badRequest" { error: "Name required" }
-    else respond @"created" { id: 99, name: body.name, email: body.email }
+  if body.name == "" then reject @"badRequest" { error: "Name required" }
+  else respond @"created" { id: 99, name: body.name, email: body.email }
 
 updateUserHandler :: Handler UpdateUserRoute ()
 updateUserHandler = handle do
   { path, body } <- ask
-  if path.id /= 42
-    then reject @"notFound" { error: "Not found" }
-    else respond @"ok" { id: path.id, name: body.name, email: body.email }
+  if path.id /= 42 then reject @"notFound" { error: "Not found" }
+  else respond @"ok" { id: path.id, name: body.name, email: body.email }
 
 deleteUserHandler :: Handler DeleteUserRoute ()
 deleteUserHandler = handle do
   { path } <- ask
-  if path.id /= 42
-    then reject @"notFound" { error: "Not found" }
-    else respond @"ok" {}
+  if path.id /= 42 then reject @"notFound" { error: "Not found" }
+  else respond @"ok" {}
 
 meHandler :: Handler AuthRoute ()
 meHandler = handle do
@@ -166,13 +172,24 @@ meHandler = handle do
 searchHandler :: Handler SearchRoute ()
 searchHandler = handle do
   { query } <- ask
-  let active = case query.active of
-        Just a -> a
-        Nothing -> false
-  let minScore = case query.minScore of
-        Just s -> s
-        Nothing -> 0.0
+  let
+    active = case query.active of
+      Just a -> a
+      Nothing -> false
+  let
+    minScore = case query.minScore of
+      Just s -> s
+      Nothing -> 0.0
   respond @"ok" { active, minScore }
+
+findByQueryHandler :: Handler FindByQueryRoute ()
+findByQueryHandler = handle do
+  { query } <- ask
+  let
+    id = case query.id of
+      Just value -> value
+      Nothing -> -1
+  respond @"ok" { id }
 
 tenantUserHandler :: Handler InjectedTenantRoute ()
 tenantUserHandler = handle do
@@ -185,7 +202,6 @@ tenantUserHandler = handle do
 
 spec :: Spec Unit
 spec = around withServer $ describe "server ↔ client roundtrip" do
-
 
   describe "GET with path params" do
     it "returns user for valid id" \_ ->
@@ -204,12 +220,17 @@ spec = around withServer $ describe "server ↔ client roundtrip" do
     it "passes query params correctly" \_ ->
       runOm {} { exception: \_ -> pure unit } do
         users <- api.listUsers (justifill { limit: 1 })
-        liftAff $ (map _.name users) `shouldEqual` ["Alice"]
+        liftAff $ (map _.name users) `shouldEqual` [ "Alice" ]
+
+    it "serializes a single explicit Maybe query through the derived client" \_ ->
+      runOm {} { exception: \_ -> pure unit } do
+        result <- api.findByQuery { id: Just 42 }
+        liftAff $ result.id `shouldEqual` 42
 
     it "handles no query params" \_ ->
       runOm {} { exception: \_ -> pure unit } do
         users <- api.listUsers (justifill {})
-        liftAff $ (map _.name users) `shouldEqual` ["Alice", "Bob", "Charlie"]
+        liftAff $ (map _.name users) `shouldEqual` [ "Alice", "Bob", "Charlie" ]
 
   describe "POST with JSON body" do
     it "sends and receives JSON body" \_ ->
@@ -230,10 +251,11 @@ spec = around withServer $ describe "server ↔ client roundtrip" do
   describe "PUT with path params and JSON body" do
     it "sends path params and body together" \_ ->
       runOm {} { exception: \_ -> pure unit } do
-        user <- api.updateUser
-          { id: 42 }
-          { name: "Updated", email: "u@t.com" }
-          # handleErrors { notFound: \e -> pure { id: 0, name: e.error, email: "" } }
+        user <-
+          api.updateUser
+            { id: 42 }
+            { name: "Updated", email: "u@t.com" }
+            # handleErrors { notFound: \e -> pure { id: 0, name: e.error, email: "" } }
         liftAff do
           user.id `shouldEqual` 42
           user.name `shouldEqual` "Updated"
@@ -292,17 +314,17 @@ spec = around withServer $ describe "server ↔ client roundtrip" do
     it "accepts a selected optional query parameter" \_ ->
       runOm {} { exception: \_ -> pure unit } do
         users <- api.listUsers (justifill { limit: 1 })
-        liftAff $ (map _.name users) `shouldEqual` ["Alice"]
+        liftAff $ (map _.name users) `shouldEqual` [ "Alice" ]
 
     it "accepts all optional query parameters" \_ ->
       runOm {} { exception: \_ -> pure unit } do
         users <- api.listUsers (justifill { limit: 2, offset: 0 })
-        liftAff $ (map _.name users) `shouldEqual` ["Alice", "Bob"]
+        liftAff $ (map _.name users) `shouldEqual` [ "Alice", "Bob" ]
 
     it "fills omitted optional query parameters with Nothing" \_ ->
       runOm {} { exception: \_ -> pure unit } do
         users <- api.listUsers (justifill {})
-        liftAff $ (map _.name users) `shouldEqual` ["Alice", "Bob", "Charlie"]
+        liftAff $ (map _.name users) `shouldEqual` [ "Alice", "Bob", "Charlie" ]
 
     it "passes selected Boolean query param" \_ ->
       runOm {} { exception: \_ -> pure unit } do
@@ -347,7 +369,9 @@ withServer test = bracket acquire release (\_ -> test unit)
         , deleteUser: deleteUserHandler
         , me: meHandler
         , search: searchHandler
-        } f
+        , findByQuery: findByQueryHandler
+        }
+        f
       registerAPI @InjectedAPI { getTenantUser: tenantUserHandler } f
       pure f
     void $ F.listen { port: Port 44932, host: Host "0.0.0.0" } fastify

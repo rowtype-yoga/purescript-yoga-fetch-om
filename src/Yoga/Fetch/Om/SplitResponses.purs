@@ -2,6 +2,7 @@ module Yoga.Fetch.Om.SplitResponses
   ( class IsSuccessStatus
   , class ExtractBodyRL
   , class ExtractBody
+  , class ClientResponseBody
   , class SplitResponses
   , class SplitResponsesRL
   , class DispatchResponse
@@ -13,6 +14,8 @@ import Prim.RowList (RowList)
 import Prim.RowList as RL
 import Data.Unit (Unit)
 import Yoga.HTTP.API.Route (Response)
+import Yoga.HTTP.API.Route.Encoding (PlainText, Streaming)
+import Yoga.Om.Strom (Strom)
 
 class IsSuccessStatus (label :: Symbol) (isSuccess :: Boolean) | label -> isSuccess
 
@@ -37,13 +40,20 @@ instance ExtractBodyRL (RL.Cons "body" body tail) body
 
 else instance ExtractBodyRL tail body => ExtractBodyRL (RL.Cons label ty tail) body
 
+class ClientResponseBody (encoded :: Type) (decoded :: Type) | encoded -> decoded
+
+instance ClientResponseBody PlainText String
+else instance ClientResponseBody (Streaming a) (Strom {} () a)
+else instance ClientResponseBody body body
+
 class ExtractBody (responseType :: Type) (bodyType :: Type) | responseType -> bodyType
 
-instance ExtractBody (Response headers body) body
+instance ClientResponseBody encoded body => ExtractBody (Response headers encoded) body
 
 else instance
   ( RL.RowToList row rl
-  , ExtractBodyRL rl body
+  , ExtractBodyRL rl encoded
+  , ClientResponseBody encoded body
   ) =>
   ExtractBody (Record row) body
 

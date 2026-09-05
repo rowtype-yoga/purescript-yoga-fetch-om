@@ -3,22 +3,32 @@ module MakeRequest.Spec where
 import Prelude
 
 import Data.HTTP.Method as HTTP
+import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested ((/\))
 import JS.Fetch.Headers as Headers
 import Prim.RowList as RL
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
 import Type.Proxy (Proxy(..))
-import Yoga.Fetch.Om (toHeaders)
-import Yoga.Fetch.Om.MakeRequest (httpMethod)
+import Yoga.Fetch.Om (FormData, PlainText, QUERY, toHeaders)
+import Yoga.Fetch.Om.MakeRequest (encodeBody, encodingContentType, httpMethod)
 import Yoga.HTTP.API.Route (BearerToken(..))
-import Yoga.HTTP.API.Route.Method as Route
 
 spec :: Spec Unit
 spec = do
   describe "MakeRequest" do
-    it "maps a QUERY route method to the QUERY runtime method" do
-      httpMethod (Proxy :: Proxy Route.QUERY) `shouldEqual` HTTP.QUERY
+    it "maps a QUERY route method imported from the public module" do
+      httpMethod (Proxy :: Proxy QUERY) `shouldEqual` HTTP.QUERY
+
+  describe "BodyEncoding" do
+    it "sends PlainText request bodies without JSON quoting" do
+      encodingContentType (Proxy :: Proxy PlainText) `shouldEqual` "text/plain"
+      encodeBody @PlainText "hello" `shouldEqual` Just "hello"
+
+    it "URL-encodes FormData request bodies" do
+      encodingContentType (Proxy :: Proxy (FormData { username :: String })) `shouldEqual` "application/x-www-form-urlencoded"
+      encodeBody @(FormData { username :: String }) { username: "Ada Lovelace" }
+        `shouldEqual` Just "username=Ada+Lovelace"
 
   describe "toHeaders" do
     it "empty headers produces no entries" do

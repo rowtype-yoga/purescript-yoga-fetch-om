@@ -1,5 +1,7 @@
 output/
 output-compile-fail/
+coverage/
+generated-docs/
 node_modules/
 .spago/
 .psc-ide-port
